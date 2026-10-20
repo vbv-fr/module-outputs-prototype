@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module Outputs in Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#ff4301; --primary-ring:rgba(255,67,1,.3); --on-primary:#fff; --sel-bg:#fff3ee;
+  --bg:#fff; --surface:#fff; --pane:#f9fafb; --text:#000; --ink:#1f2937; --text-2:#374151; --label:#4b5563; --muted:#6b7280; --muted-2:#9ca3af; --mo-key:#6b6f72;
+  --border:#e5e7eb; --border-strong:#d1d5db; --line-soft:#f3f4f6; --track:#f3f4f6; --hover:#f9fafb;
+  --cb-on:#111827; --cb-off:#d1d5db; --cb-bg:#fff;
+  --overlay:rgba(107,114,128,.75);
+  --sidebar:#1e1c1c; --sidebar-edge:#d1d5db;
+  --pass:#16a34a; --fail:#ef4444; --link:#3b82f6; --link-hover:#3730a3;
+  --sum-pass-bg:#f0fdf4; --sum-pass:#15803d; --sum-fail-bg:#fef2f2; --sum-fail:#dc2626;
+  --sum-def-bg:#fff7ed; --sum-def:#ea580c; --sum-rj-bg:#eff6ff; --sum-rj:#2563eb;
+  --tag-bg:#f3f4f6; --tag-text:#4b5563; --tag-border:#d1d5db; --seg-on-bg:#1e1c1c; --seg-on-text:#fff;
+  --toast-bg:#fff; --toast-text:#363636;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121212; --surface:#181818; --pane:#141414; --text:#f3f4f6; --ink:#f3f4f6; --text-2:#d1d5db; --label:#d1d5db; --muted:#9ca3af; --muted-2:#6b7280; --mo-key:#9ca3af;
+    --sel-bg:#2b1a12; --border:#2c2c2c; --border-strong:#3a3a3a; --line-soft:#262626; --track:#262626; --hover:#222;
+    --cb-on:#f3f4f6; --cb-off:#4b5563; --cb-bg:#181818; --overlay:rgba(0,0,0,.65);
+    --sidebar:#0d0c0c; --sidebar-edge:#2c2c2c;
+    --pass:#4ade80; --fail:#f87171; --link:#60a5fa; --link-hover:#93c5fd;
+    --sum-pass-bg:#10241a; --sum-pass:#4ade80; --sum-fail-bg:#2a1515; --sum-fail:#f87171;
+    --sum-def-bg:#2a1c10; --sum-def:#fb923c; --sum-rj-bg:#121d33; --sum-rj:#60a5fa;
+    --tag-bg:#262626; --tag-text:#d1d5db; --tag-border:#3a3a3a; --seg-on-bg:#f3f4f6; --seg-on-text:#121212;
+    --toast-bg:#262626; --toast-text:#f3f4f6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121212; --surface:#181818; --pane:#141414; --text:#f3f4f6; --ink:#f3f4f6; --text-2:#d1d5db; --label:#d1d5db; --muted:#9ca3af; --muted-2:#6b7280; --mo-key:#9ca3af;
+  --sel-bg:#2b1a12; --border:#2c2c2c; --border-strong:#3a3a3a; --line-soft:#262626; --track:#262626; --hover:#222;
+  --cb-on:#f3f4f6; --cb-off:#4b5563; --cb-bg:#181818; --overlay:rgba(0,0,0,.65);
+  --sidebar:#0d0c0c; --sidebar-edge:#2c2c2c;
+  --pass:#4ade80; --fail:#f87171; --link:#60a5fa; --link-hover:#93c5fd;
+  --sum-pass-bg:#10241a; --sum-pass:#4ade80; --sum-fail-bg:#2a1515; --sum-fail:#f87171;
+  --sum-def-bg:#2a1c10; --sum-def:#fb923c; --sum-rj-bg:#121d33; --sum-rj:#60a5fa;
+  --tag-bg:#262626; --tag-text:#d1d5db; --tag-border:#3a3a3a; --seg-on-bg:#f3f4f6; --seg-on-text:#121212;
+  --toast-bg:#262626; --toast-text:#f3f4f6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* Sidebar (collapsed, as the app opens by default) */
+.side{position:fixed;left:0;top:0;z-index:100;width:114px;height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:24px 8px;background:var(--sidebar);border-right:1px solid var(--sidebar-edge);box-shadow:0 4px 6px -1px rgba(0,0,0,.1)}
+.logo{margin:12px 0 40px;width:60px;height:60px;display:flex;align-items:center;justify-content:center}
+.nav{margin-top:32px;flex:1;width:100%;list-style:none}
+.nav a{display:flex;align-items:center;justify-content:center;border-radius:6px;padding:8px 0;color:#fff}
+.nav a:hover{background:rgba(255,255,255,.2)}
+.collapse{color:#fff;padding:8px 0}
+.collapse:hover{opacity:.75}
+.main{margin-left:114px;height:100vh;display:flex;flex-direction:column;background:var(--surface)}
+
+/* Header */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--surface)}
+.heading{display:flex;align-items:center;gap:12px;min-height:60px;margin-top:4px;padding:16px 20px;flex-wrap:wrap}
+.heading h1{font-size:30px;line-height:36px;font-weight:500}
+.proto{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tag-text);
+  background:var(--tag-bg);border:1px dashed var(--tag-border);border-radius:999px;padding:2px 10px}
+.seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:999px;padding:2px;background:var(--surface)}
+.seg button{font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--seg-on-bg);color:var(--seg-on-text)}
+.top-right{display:flex;align-items:center;gap:12px;margin:8px 20px 0;flex-wrap:wrap}
+.tabs{display:flex;align-items:center;height:36px;padding:0 4px;border-radius:8px;background:var(--track)}
+.tabs button{display:flex;align-items:center;gap:4px;height:36px;padding:0 16px;border-radius:6px;font-size:14px;font-weight:600;color:var(--muted)}
+.tabs button + button{margin-left:4px}
+.tabs button.on{background:var(--primary);color:var(--on-primary)}
+.tabs button:not(.on):hover{color:var(--text)}
+.search{position:relative;display:flex;align-items:center}
+.search .i{position:absolute;left:12px;width:18px;height:18px;color:var(--muted-2)}
+.search input{height:36px;width:256px;max-width:100%;border:1px solid var(--border);border-radius:8px;padding:0 40px;font-size:14px;background:var(--surface)}
+.search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+
+/* Filter toolbar */
+.fbar{position:relative;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border);padding:16px 20px 12px}
+.fleft{display:flex;flex:1;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
+.fbtn{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;height:38px;padding:0 12px;border-radius:8px;
+  background:var(--surface);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.fbtn:hover{background:var(--hover)}
+.fbtn .i{color:var(--muted)}
+.fbtn .t{overflow:hidden;text-overflow:ellipsis}
+.badge{position:absolute;top:-4px;right:-4px;display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:999px;
+  background:var(--primary);color:#fff;font-size:10px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.mbtn{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--primary);border-radius:6px;
+  background:var(--surface);color:var(--primary);font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.mbtn:hover{background:var(--sel-bg)}
+.abtn{display:flex;align-items:center;justify-content:center;width:38px;height:32px;border-radius:6px;background:var(--primary);color:#fff;flex-shrink:0}
+.abtn:hover{background:rgba(255,67,1,.9)}
+.fright{display:flex;gap:8px;flex-shrink:0}
+.etw{position:relative;z-index:35}
+
+/* Edit Table dropdown (Customize Columns) */
+.etd{position:absolute;right:0;top:100%;z-index:45;margin-top:4px;display:flex;flex-direction:column;width:260px;max-height:420px;
+  border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:12px 0;font-size:14px;
+  box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)}
+.etd-h{padding:0 16px 8px;font-size:12px;line-height:16px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:var(--muted)}
+.etd-list{max-height:288px;overflow-y:auto}
+.etd-row{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;color:var(--text-2)}
+.etd-row:hover{background:var(--hover)}
+.etd-row.lock{cursor:not-allowed;color:var(--muted-2)}
+.etd-row.lock:hover{background:none}
+.etd-row .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;line-height:20px;font-weight:500}
+.cb{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;border:1px solid var(--cb-off);border-radius:2px;background:var(--cb-bg)}
+.cb.on{border-color:var(--cb-on)}
+.cb.on::after{content:"";width:8px;height:8px;border-radius:1px;background:var(--cb-on)}
+.lock .cb{opacity:.5}
+.etd-f{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--line-soft);padding:12px 16px 0}
+.sbtn{flex:1;border:1px solid transparent;border-radius:8px;padding:4px 8px;font-size:12px;line-height:16px;font-weight:400}
+.sbtn.b{border-color:var(--primary);color:var(--primary)}
+.sbtn.b:hover{opacity:.7}
+.sbtn.p{background:var(--primary);color:#fff}
+.sbtn.p:hover{background:rgba(255,67,1,.9)}
+.clickaway{position:fixed;inset:0;z-index:20}
+
+/* Summary bar */
+.sum{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface)}
+.sum > div{display:flex;flex-grow:1;align-items:center;gap:16px;padding:10px 20px;border-right:1px solid var(--border);font-size:14px}
+.sum > div:last-child{border-right:0}
+.sum span{font-weight:500}
+.sum b{margin-left:auto;font-weight:600}
+.s-total span{color:var(--label)}
+.s-pass{background:var(--sum-pass-bg);color:var(--sum-pass)}
+.s-fail{background:var(--sum-fail-bg);color:var(--sum-fail)}
+.s-def{background:var(--sum-def-bg);color:var(--sum-def)}
+.s-rj{background:var(--sum-rj-bg)} .s-rj span{color:var(--sum-rj)}
+
+/* Results table */
+.tablewrap{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;margin-top:12px;padding:0 20px 20px}
+.tscroll{flex:1;min-height:0;min-width:0;overflow:auto}
+table{width:100%;min-width:100%;border-collapse:collapse;table-layout:fixed}
+th{position:sticky;top:0;z-index:11;background:var(--primary);color:#fff;font-size:16px;font-weight:500;text-align:center;padding:16px 8px}
+th::after{content:"";position:absolute;top:10px;bottom:10px;right:0;width:2px;border-radius:16px;background:#fff}
+th:last-child::after{display:none}
+tbody{background:var(--surface);border-top:1px solid var(--border-strong)}
+tbody tr + tr{border-top:1px solid var(--border)}
+td{padding:8px;color:var(--text);vertical-align:middle;overflow:visible}
+td > div{display:flex;align-items:center;justify-content:center;width:100%;height:100%;text-align:center}
+td.mo-td > div{justify-content:flex-start;text-align:left}
+.mo{display:flex;flex-direction:column;padding:0 4px;font-size:13px;line-height:18px;overflow-wrap:anywhere}
+.mo .k{color:var(--mo-key)}
+.lnk{display:flex;align-items:center;gap:6px;color:var(--link);font-weight:500}
+.lnk:hover{color:var(--link-hover)}
+.res{font-size:14px;font-weight:600}
+.res.p{color:var(--pass)} .res.f{color:var(--fail)}
+.mdbtn{border:1px solid transparent;border-radius:6px;padding:4px 12px;background:var(--primary);color:#fff;font-size:14px;font-weight:600}
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:16px;border-top:1px solid var(--border);padding:8px 16px}
+.pager span{font-size:14px;color:var(--muted)}
+.pager button{border-radius:4px;padding:4px;display:flex}
+.pager button:disabled{opacity:.3;cursor:default}
+.pager .i{width:18px;height:18px}
+
+/* Modal (mirrors modules/modal + DownloadModal: grey overlay, white rounded-lg card, px-6 py-4 header/footer) */
+.ov{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--overlay)}
+.md{display:flex;flex-direction:column;width:100%;max-width:960px;max-height:calc(100vh - 32px);border-radius:8px;background:var(--surface);color:var(--text);
+  box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1)}
+.md-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 24px}
+.md-head h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
+.md-sub{font-size:14px;line-height:20px;color:var(--muted)}
+.md-x{display:flex;color:var(--ink)}
+.md-x svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.md-body{display:flex;min-height:0;height:min(620px, calc(100vh - 220px));margin:0 24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.caps{flex:0 0 260px;overflow-y:auto;border-right:1px solid var(--border);padding:4px 0 8px;background:var(--surface)}
+.caps-h{padding:12px 16px 6px;font-size:12px;line-height:16px;font-weight:600;text-transform:uppercase;letter-spacing:.025em;color:var(--muted)}
+.cap{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:10px 16px;text-align:left;font-size:14px;line-height:20px;font-weight:500;color:var(--text-2)}
+.cap:hover{background:var(--hover)}
+.cap.on{background:var(--sel-bg);color:var(--ink);box-shadow:inset 3px 0 0 var(--primary)}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;
+  background:var(--track);color:var(--muted);font-size:11px;font-weight:600;line-height:1}
+.cnt.on{background:var(--primary);color:#fff}
+.pane{flex:1;min-width:0;overflow-y:auto;padding:16px 20px 20px;background:var(--pane)}
+.pane-h{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+.pane-h b{font-size:15px;line-height:22px;font-weight:600;color:var(--ink)}
+.pane-h span{font-size:13px;color:var(--muted)}
+.mcard{border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.mcard + .mcard{margin-top:12px}
+.mcard-h{display:flex;align-items:baseline;gap:8px;padding:9px 16px;border-bottom:1px solid var(--line-soft)}
+.mcard-h b{font-size:14px;line-height:20px;font-weight:600;color:var(--ink)}
+.mcard-h span{font-size:13px;line-height:20px;color:var(--muted)}
+.vrow{display:flex;align-items:center;gap:12px;padding:6px 16px}
+.vrow + .vrow{border-top:1px solid var(--line-soft)}
+.vrow input[type=checkbox]{width:16px;height:16px;flex-shrink:0;cursor:pointer;accent-color:var(--primary)}
+.vname{flex:1;max-width:340px;height:32px;border:1px solid var(--border-strong);border-radius:6px;padding:0 12px;font-size:14px;background:var(--surface);color:var(--text)}
+.vname:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+.vrow.off .vname{background:var(--pane);color:var(--muted)}
+.vex{margin-left:auto;padding-left:12px;font-size:13px;color:var(--muted);white-space:nowrap}
+.md-foot{display:flex;justify-content:flex-end;gap:12px;padding:16px 24px}
+.btn{height:auto;border:1px solid transparent;border-radius:6px;padding:8px 24px;font-size:14px;line-height:20px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.btn.b{border-color:var(--primary);color:var(--primary);background:transparent}
+.btn.b:hover{opacity:.7}
+.btn.p{background:var(--primary);color:#fff}
+.btn.p:hover{background:rgba(255,67,1,.9)}
+
+/* react-hot-toast look */
+.toast{position:fixed;top:16px;left:50%;z-index:100000;transform:translateX(-50%);display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:8px;background:var(--toast-bg);color:var(--toast-text);font-size:14px;line-height:1.3;
+  box-shadow:0 3px 10px rgba(0,0,0,.1),0 3px 3px rgba(0,0,0,.05)}
+.toast i{display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#61d345}
+.toast i svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+
+/* Image viewer (always dark, as in the app) */
+.vw{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.9);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.vw-in{position:relative;display:flex;flex-direction:column;width:100%;height:100%;padding:24px}
+.vw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;color:#fff}
+.vw-head h3{font-size:20px;line-height:28px;font-weight:700;letter-spacing:-.025em}
+.vw-sub{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;font-weight:500;color:#d1d5db}
+.chip{border-radius:4px;padding:2px 8px;font-size:14px;font-weight:600}
+.chip.p{background:rgba(34,197,94,.2);color:#4ade80} .chip.f{background:rgba(239,68,68,.2);color:#f87171}
+.vw-count{color:#6b7280}
+.vw-tools{display:flex;align-items:center;gap:8px}
+.zoomg{display:flex;align-items:center;gap:4px;border-radius:999px;background:rgba(255,255,255,.1);padding:4px}
+.zoomg button{display:flex;align-items:center;justify-content:center;border-radius:999px;padding:8px;color:#fff}
+.zoomg button:hover{background:rgba(255,255,255,.15)}
+.zoomg button:disabled{opacity:.3;cursor:not-allowed}
+.zoomg .zr{min-width:72px;gap:4px;padding:6px 8px;font-size:14px;font-weight:600}
+.vw-close{display:flex;border-radius:999px;background:rgba(255,255,255,.1);padding:10px;color:#fff;transition:transform .15s}
+.vw-close:hover{transform:scale(1.1);background:rgba(255,255,255,.2)}
+.vw-port{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:12px;background:rgba(0,0,0,.4)}
+.vw-nav{position:absolute;z-index:10;display:flex;border-radius:999px;background:rgba(0,0,0,.6);padding:16px;color:#fff;box-shadow:0 10px 15px -3px rgba(0,0,0,.3)}
+.vw-nav:hover{background:#fff;color:#000}
+.vw-nav.l{left:24px} .vw-nav.r{right:24px}
+.vw-stage{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:16px}
+.vw-stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;box-shadow:0 0 50px rgba(0,0,0,.5);transition:transform .2s ease-out}
+.vw-thumbs{display:flex;justify-content:center;gap:12px;margin-top:32px;padding:0 16px 8px;overflow-x:auto}
+.th{position:relative;flex-shrink:0;width:128px;height:80px;overflow:hidden;border-radius:8px;border:2px solid rgba(255,255,255,.1);opacity:.4;transition:all .2s}
+.th:hover{opacity:1;border-color:rgba(255,255,255,.3);transform:scale(1.05)}
+.th.on{opacity:1;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.th.on::after{content:"";position:absolute;inset:0;background:rgba(255,67,1,.1)}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th b{position:absolute;bottom:4px;left:4px;z-index:1;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;line-height:1;color:#fff}
+.th b.p{background:rgba(22,163,74,.9)} .th b.f{background:rgba(220,38,38,.9)}
+
+@media (max-width:767px){
+  .side{display:none}
+  .main{margin-left:0;height:auto;min-height:100vh}
+  .top-right{margin:0 16px 8px}
+  .heading{padding:12px 16px}
+  .heading h1{font-size:24px;line-height:32px}
+  .fbar{flex-wrap:wrap;padding:12px 16px}
+  .sum > div{flex-basis:50%}
+  .tablewrap{padding:0 16px 16px}
+  table{min-width:1100px}
+  .md-head,.md-foot{padding:12px 16px}
+  .md-body{flex-direction:column;height:auto;max-height:calc(100vh - 200px);margin:0 16px}
+  .caps{flex:0 0 auto;max-height:180px;border-right:0;border-bottom:1px solid var(--border)}
+  .pane{padding:12px}
+  .vrow{flex-wrap:wrap}
+  .vex{margin-left:28px;padding-left:0}
+  .vw-in{padding:16px}
+  .vw-head{flex-wrap:wrap}
+  .vw-nav{padding:10px}
+  .vw-nav.l{left:8px} .vw-nav.r{right:8px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-zin" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></symbol>
+  <symbol id="i-zout" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+</svg>
+
+<aside class="side">
+  <div class="logo" aria-hidden="true">
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#fff" stroke-width="2"><circle cx="22" cy="22" r="19"/><path d="M15 31V13h14M15 22h10"/></svg>
+  </div>
+  <ul class="nav">
+    <li><a href="#" title="Analytics &amp; Reports" onclick="return false">
+      <svg width="14" height="18" viewBox="0 0 14 18" fill="none"><path d="M13 17V7M7 17V1M1 17V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a></li>
+  </ul>
+  <button class="collapse" type="button" aria-label="Expand sidebar">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 18 8 13 3 8"/><line x1="11" y1="9" x2="11" y2="17"/><line x1="14" y1="9" x2="14" y2="17"/></svg>
+  </button>
+</aside>
+
+<div class="main">
+  <header class="top">
+    <div class="heading">
+      <h1>Analytics &amp; Reports</h1>
+      <span class="proto">Prototype</span>
+      <div class="seg" id="seg">
+        <button type="button" data-mode="today" aria-pressed="false">Today</button>
+        <button type="button" data-mode="after" aria-pressed="true">After change</button>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="tabs">
+        <button type="button" class="on">Cycle-wise</button>
+        <button type="button" title="For deployments made in Fast Mode.">Minute-wise <svg class="i" style="width:18px;height:18px"><use href="#i-info"/></svg></button>
+      </div>
+      <div class="search">
+        <svg class="i"><use href="#i-search"/></svg>
+        <input type="text" placeholder="Search" aria-label="Search">
+      </div>
+    </div>
+  </header>
+
+  <div class="fbar">
+    <div class="fleft">
+      <button type="button" class="fbtn">20/10/2026 00:00 → 20/10/2026 23:59 <svg class="i"><use href="#i-down"/></svg></button>
+      <button type="button" class="fbtn" style="max-width:131px"><span class="t">Line 1 Instance</span><svg class="i"><use href="#i-down"/></svg></button>
+      <button type="button" class="fbtn">Variant <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
+      <button type="button" class="fbtn" style="width:100px">Outcome <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
+    </div>
+    <button type="button" class="mbtn" id="moBtn"><svg class="i"><use href="#i-list"/></svg>Module Outputs</button>
+    <div class="etw" id="etw">
+      <button type="button" class="abtn" id="etBtn" title="Edit Table"><svg class="i"><use href="#i-edit"/></svg></button>
+      <div class="etd" id="etd" hidden>
+        <div class="etd-h">Customize Columns</div>
+        <div class="etd-list" id="etdList"></div>
+        <div class="etd-f">
+          <button type="button" class="sbtn b" id="etReset">Reset</button>
+          <button type="button" class="sbtn p" id="etDone">Done</button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="abtn" title="Download"><svg class="i"><use href="#i-dl"/></svg></button>
+    <div class="fright">
+      <button type="button" class="abtn" title="Add Filter"><svg class="i"><use href="#i-filter"/></svg></button>
+      <button type="button" class="abtn" title="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+    </div>
+  </div>
+
+  <div class="sum">
+    <div class="s-total"><span>Total</span><b>3</b></div>
+    <div class="s-pass"><span>Pass</span><b>2</b></div>
+    <div class="s-fail"><span>Fail</span><b>1</b></div>
+    <div class="s-def"><span>Defect %</span><b>33.333%</b></div>
+    <div class="s-rj"><span>Reverse Judgement</span><b>0</b></div>
+  </div>
+
+  <section class="tablewrap">
+    <div class="tscroll">
+      <table>
+        <colgroup id="cols"></colgroup>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <span>1–3 of 3</span>
+      <button type="button" disabled aria-label="Previous page"><svg class="i"><use href="#i-left"/></svg></button>
+      <button type="button" disabled aria-label="Next page"><svg class="i"><use href="#i-right"/></svg></button>
+    </div>
+  </section>
+</div>
+
+<div class="clickaway" id="clickaway" hidden></div>
+
+<!-- Module Outputs setup -->
+<div class="ov" id="mo" hidden>
+  <div class="md" id="moCard" role="dialog" aria-modal="true" aria-labelledby="moTitle">
+    <div class="md-head">
+      <div>
+        <h3 id="moTitle">Module Outputs</h3>
+        <div class="md-sub">Line 1 Instance</div>
+      </div>
+      <button type="button" class="md-x" id="moClose" aria-label="Close"><svg viewBox="0 0 32 32"><path d="M24 8L8 24M8 8L24 24"/></svg></button>
+    </div>
+    <div class="md-body">
+      <nav class="caps" id="capList" aria-label="Captures"></nav>
+      <div class="pane" id="capPane"></div>
+    </div>
+    <div class="md-foot">
+      <button type="button" class="btn b" id="moCancel">Cancel</button>
+      <button type="button" class="btn p" id="moSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden><i><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></i><span id="toastText"></span></div>
+
+<div class="vw" id="vw" hidden>
+  <div class="vw-in">
+    <div class="vw-head">
+      <div>
+        <h3 id="vwTitle"></h3>
+        <div class="vw-sub"><span id="vwName"></span><span id="vwChip" class="chip"></span><span id="vwCount" class="vw-count"></span></div>
+      </div>
+      <div class="vw-tools">
+        <div class="zoomg">
+          <button type="button" id="zOut" title="Zoom out (-)"><svg class="i" style="width:20px;height:20px"><use href="#i-zout"/></svg></button>
+          <button type="button" id="zReset" class="zr" title="Reset zoom (0)"><svg class="i"><use href="#i-reset"/></svg><span id="zPct">100%</span></button>
+          <button type="button" id="zIn" title="Zoom in (+)"><svg class="i" style="width:20px;height:20px"><use href="#i-zin"/></svg></button>
+        </div>
+        <button type="button" class="vw-close" id="vwClose" title="Close (Esc)"><svg class="i" style="width:28px;height:28px"><use href="#i-x"/></svg></button>
+      </div>
+    </div>
+    <div class="vw-port" id="vwPort">
+      <button type="button" class="vw-nav l" id="vwPrev" title="Previous (Left Arrow)"><svg class="i" style="width:36px;height:36px"><use href="#i-left"/></svg></button>
+      <button type="button" class="vw-nav r" id="vwNext" title="Next (Right Arrow)"><svg class="i" style="width:36px;height:36px"><use href="#i-right"/></svg></button>
+      <div class="vw-stage" id="vwStage"><img id="vwImg" alt="" draggable="false"></div>
+    </div>
+    <div class="vw-thumbs" id="vwThumbs"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- Placeholder camera frames (inline SVG, grey metal part on dark background) ----------
+  const STROKE = 'stroke="#c3c7cc" stroke-width="4"';
+  const screw = (x, y) => `<circle cx="${x}" cy="${y}" r="16" fill="#3a3e44" ${STROKE}/><line x1="${x - 8}" y1="${y}" x2="${x + 8}" y2="${y}" stroke="#c3c7cc" stroke-width="3"/>`;
+  const SCREWS = [[330, 290], [950, 290], [330, 670], [950, 670]];
+  const SCRATCHES = [[262, 662], [925, 650], [600, 690]], DENTS = [[960, 360]];
+  function qr(text, x, y, cell) {
+    let h = 7; for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const n = 21, finder = (r, c) => [[0, 0], [0, 14], [14, 0]].some(([fr, fc]) => r >= fr && r < fr + 7 && c >= fc && c < fc + 7);
+    let s = `<rect x="${x - cell}" y="${y - cell}" width="${(n + 2) * cell}" height="${(n + 2) * cell}" fill="#f4f5f6"/>`;
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      let on;
+      if (finder(r, c)) { const fr = r < 7 ? 0 : 14, fc = c < 7 ? 0 : 14, dr = r - fr, dc = c - fc; on = dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4); }
+      else { h = (h * 1103515245 + 12345) >>> 0; on = (h >>> 16) % 2 === 0; }
+      if (on) s += `<rect x="${x + c * cell}" y="${y + r * cell}" width="${cell}" height="${cell}" fill="#15171a"/>`;
+    }
+    return s;
+  }
+  const PARTS = {
+    front: (o) => {
+      let s = `<rect x="240" y="200" width="800" height="560" rx="44" fill="url(#m)" ${STROKE}/>`;
+      for (let y = 250; y <= 720; y += 60) s += `<line x1="290" x2="990" y1="${y}" y2="${y}" stroke="#fff" stroke-opacity=".1" stroke-width="3"/>`;
+      s += `<circle cx="470" cy="470" r="110" fill="url(#d)" ${STROKE}/><circle cx="470" cy="470" r="62" fill="#9aa0a7" stroke="#c3c7cc" stroke-width="3"/><circle cx="470" cy="470" r="18" fill="#15171a"/>`;
+      s += `<circle cx="810" cy="470" r="110" fill="url(#d)" ${STROKE}/>`;
+      if (o.slot2 === 'Bad') s += `<circle cx="810" cy="470" r="62" fill="#9aa0a7" stroke="#c3c7cc" stroke-width="3"/><path d="M770 432 L806 474 L790 500 L842 526" stroke="#26292e" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+      SCREWS.slice(0, 2).forEach(([x, y]) => { s += `<circle cx="${x}" cy="${y}" r="28" fill="#b9bec4" stroke="#8d939a" stroke-width="3"/>`; });
+      SCREWS.forEach(([x, y], k) => { s += k < o.screws ? screw(x, y) : `<circle cx="${x}" cy="${y}" r="10" fill="#15171a"/>`; });
+      return s;
+    },
+    label: (o) => `<rect x="200" y="210" width="880" height="540" rx="26" fill="url(#m)" ${STROKE}/>` +
+      [[250, 260], [1030, 260], [250, 700], [1030, 700]].map(([x, y]) => screw(x, y)).join('') +
+      `<rect x="380" y="340" width="520" height="260" rx="10" fill="#d7d9dc" stroke="#9ea3a9" stroke-width="3"/>` +
+      `<text x="410" y="430" font-family="Courier New,monospace" font-size="52" font-weight="700" fill="#1d2024">${o.serial}</text>` +
+      `<text x="410" y="510" font-family="Courier New,monospace" font-size="36" fill="#3b3f45">MFD 10/2026</text>` +
+      qr(o.code === '—' ? 'unread' : o.code, 744, 380, 6) +
+      (o.code === '—' ? '<ellipse cx="806" cy="440" rx="66" ry="48" fill="#5d6168" opacity=".85"/>' : '') +
+      SCRATCHES.slice(0, o.scratch).map(([x, y]) => `<path d="M${x} ${y} l35 -15 l30 6 l22 -18" stroke="#2b2e33" stroke-width="5" fill="none" stroke-linecap="round"/>`).join('') +
+      DENTS.slice(0, o.dent).map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="22" ry="14" fill="#4d5259" stroke="#3a3e44" stroke-width="3"/>`).join(''),
+  };
+  // Search-area overlay, as vip-inference-python draws it: border #008000 pass / #FF0000 fail, width 10, label top-left.
+  function saLayer(sa) {
+    const W = 1280, H = 960, c = sa.pass === false ? '#FF0000' : '#008000';
+    const bw = sa.x2 - sa.x1, bh = sa.y2 - sa.y1, big = bw > 400;
+    const tw1 = sa.name.length * 19, th1 = 22;
+    let fs = 2;
+    if (tw1 * fs > bw * (big ? 0.5 : 0.9)) fs = (bw * (big ? 0.5 : 0.9)) / tw1;
+    if (th1 * fs > bh * (big ? 0.3 : 0.4)) fs = (bh * (big ? 0.3 : 0.4)) / th1;
+    fs = Math.max(0.5, fs);
+    const t = Math.max(1, Math.floor(2 * fs)), m = t + 2, tw = tw1 * fs, th = th1 * fs;
+    const x = Math.max(m, Math.min(sa.x1 + 3, W - tw - m)), y = Math.max(th + m, Math.min(sa.y1 - 3, H - m));
+    return `<rect x="${sa.x1}" y="${sa.y1}" width="${bw}" height="${bh}" fill="none" stroke="${c}" stroke-width="10"/>` +
+      `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="Helvetica,Arial,sans-serif" font-size="${(th / 0.72).toFixed(1)}" textLength="${tw.toFixed(1)}" ` +
+      `lengthAdjust="spacingAndGlyphs" fill="${c}" stroke="#000" stroke-width="2" paint-order="stroke" stroke-linejoin="round">${sa.name}</text>`;
+  }
+  function frame(kind, o, draws, sa) {
+    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 960" width="1280" height="960"><defs>' +
+      '<radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#2a2d33"/><stop offset="1" stop-color="#0d0e11"/></radialGradient>' +
+      '<linearGradient id="m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9aeb5"/><stop offset=".5" stop-color="#7d828a"/><stop offset="1" stop-color="#5a5f66"/></linearGradient>' +
+      '<linearGradient id="d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3e44"/><stop offset="1" stop-color="#1f2226"/></linearGradient>' +
+      '</defs><rect width="1280" height="960" fill="url(#bg)"/>' + PARTS[kind](o);
+    (draws || []).forEach((d) => {
+      const c = d.ok ? '#22c55e' : '#ef4444', tw = d.label.length * 17 + 24;
+      s += `<rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" fill="none" stroke="${c}" stroke-width="5"/>` +
+        `<rect x="${d.x - 2.5}" y="${d.y - 44}" width="${tw}" height="44" fill="${c}"/>` +
+        `<text x="${d.x + 10}" y="${d.y - 12}" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="${d.ok ? '#052e14' : '#fff'}">${d.label}</text>`;
+    });
+    if (sa) s += saLayer(sa);
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s + '</svg>');
+  }
+  // Search areas per capture, with the boxes the modules draw inside them.
+  function searchAreas(cap) {
+    const o = cap.out;
+    if (cap.kind === 'front') {
+      const screws = SCREWS.slice(0, Number(o.screw)).map(([x, y]) => ({ x: x - 34, y: y - 34, w: 68, h: 68, label: 'screw', ok: true }));
+      const slot2Ok = o.slot2 !== 'Bad';
+      return [
+        { name: 'Fastener Area', box: { x1: 240, y1: 200, x2: 1040, y2: 760 }, pass: Number(o.screw) === 4, draws: screws },
+        { name: 'Slot Area', box: { x1: 330, y1: 300, x2: 950, y2: 620 }, pass: slot2Ok, draws: [
+          { x: 360, y: 360, w: 220, h: 220, label: o.slot1 + ' 0.97', ok: true },
+          { x: 700, y: 360, w: 220, h: 220, label: o.slot2 + (slot2Ok ? ' 0.95' : ' 0.91'), ok: slot2Ok }] },
+      ];
+    }
+    const read = o.code !== '—';
+    const marks = SCRATCHES.slice(0, Number(o.scratch)).map(([x, y]) => ({ x: x - 12, y: y - 30, w: 112, h: 60, label: 'scratch', ok: true }))
+      .concat(DENTS.slice(0, Number(o.dent)).map(([x, y]) => ({ x: x - 34, y: y - 26, w: 68, h: 52, label: 'dent', ok: true })));
+    return [
+      { name: 'Serial Area', box: { x1: 380, y1: 300, x2: 720, y2: 600 }, draws: [{ x: 400, y: 380, w: 300, h: 70, label: o.text + ' 0.98', ok: true }] },
+      { name: 'QR Area', box: { x1: 725, y1: 300, x2: 900, y2: 600 }, pass: read, draws: read ? [{ x: 735, y: 372, w: 142, h: 142, label: 'QR 0.99', ok: true }] : [] },
+      { name: 'Surface Area', box: { x1: 200, y1: 210, x2: 1080, y2: 750 }, draws: marks },
+    ];
+  }
+  const frameData = (cap) => (cap.kind === 'front'
+    ? { screws: Number(cap.out.screw), slot2: cap.out.slot2 }
+    : { serial: cap.out.text, code: cap.out.code, scratch: Number(cap.out.scratch), dent: Number(cap.out.dent) });
+
+  // ---------- Module Outputs: what each capture's modules can report ----------
+  // Every pair a module offers; `tick` = ticked once set up.
+  const FRONT_MODULES = [
+    { name: 'Fastener Check', type: 'Object Detection & Classification', values: [
+      { id: 'screw', auto: 'Screw count', ex: '4', tick: true }, { id: 'screwRes', auto: 'Screw result', ex: 'OK' },
+      { id: 'washer', auto: 'Washer count', ex: '2', tick: true }, { id: 'washerRes', auto: 'Washer result', ex: 'OK' }] },
+    { name: 'Slot Check', type: 'Image Classification', values: [
+      { id: 'slot1', auto: 'Slot 1 class', ex: 'Good', tick: true }, { id: 'slot1Conf', auto: 'Slot 1 confidence', ex: '0.98' },
+      { id: 'slot1Res', auto: 'Slot 1 result', ex: 'OK' }, { id: 'slot2', auto: 'Slot 2 class', ex: 'Empty', tick: true },
+      { id: 'slot2Conf', auto: 'Slot 2 confidence', ex: '0.95' }, { id: 'slot2Res', auto: 'Slot 2 result', ex: 'OK' }] },
+  ];
+  const LABEL_MODULES = [
+    { name: 'Serial Reader', type: 'OCR', values: [
+      { id: 'text', auto: 'Detected text', ex: 'SN-48213', tick: true }, { id: 'serialText', auto: 'Serial text', ex: 'SN-48213' },
+      { id: 'serialRes', auto: 'Serial result', ex: 'Matched' }] },
+    { name: 'QR Reader', type: 'Code Reader', values: [
+      { id: 'code', auto: 'Detected code', ex: 'FRK2026A0042', tick: true }, { id: 'codeRes', auto: 'Code result', ex: 'OK' }] },
+    { name: 'Surface Check', type: 'Segmentation', values: [
+      { id: 'scratch', auto: 'Scratch regions', ex: '2', tick: true }, { id: 'dent', auto: 'Dent regions', ex: '0', tick: true },
+      { id: 'classes', auto: 'Detected classes', ex: 'Scratch' }, { id: 'segRes', auto: 'Segmentation result', ex: 'OK' }] },
+  ];
+  const B_FRONT_MODULES = [
+    { name: 'Seal Check', type: 'Bead Inspection', values: [
+      { id: 'bead', auto: 'Bead result', ex: 'NG', tick: true }, { id: 'calPct', auto: 'Caliper pass %', ex: '76.5%', tick: true },
+      { id: 'calBad', auto: 'Incorrect calipers', ex: '47 of 200', tick: true }, { id: 'sealRes', auto: 'Door seal result', ex: 'NG' },
+      { id: 'sealGaps', auto: 'Door seal gaps', ex: '2 (largest 80 px)' }, { id: 'sealWidth', auto: 'Door seal width fails', ex: '0' }] },
+    { name: 'Cap Colour', type: 'Colour Detection', values: [
+      { id: 'red', auto: 'Red coverage', ex: '42%', tick: true }, { id: 'redRes', auto: 'Red result', ex: 'OK' }] },
+    { name: 'Hole Fit', type: 'Shape Extractor', values: [
+      { id: 'radius', auto: 'Hole radius', ex: '62.7 px' }, { id: 'fit', auto: 'Hole fit', ex: 'OK' }] },
+    { name: 'Hole Diameter', type: 'Dimensions', values: [
+      { id: 'dia', auto: 'Hole Diameter', ex: '12.4 mm', tick: true }, { id: 'diaExp', auto: 'Hole Diameter expected', ex: '12–13 mm' },
+      { id: 'diaRes', auto: 'Hole Diameter result', ex: 'OK' }] },
+    { name: 'Label Tilt', type: 'Orientation & Tilt Check', values: [
+      { id: 'tilt', auto: 'Tilt', ex: '3.2° clockwise', tick: true }, { id: 'tiltAllowed', auto: 'Tilt allowed', ex: '0–5°' },
+      { id: 'tiltRes', auto: 'Tilt result', ex: 'OK' }] },
+  ];
+  const CAPTURES = [
+    { id: 'A-CP1', variant: 'Variant A', pos: 'CP1', name: 'Front View', modules: FRONT_MODULES },
+    { id: 'A-CP3', variant: 'Variant A', pos: 'CP3', name: 'Label Side', modules: LABEL_MODULES },
+    { id: 'B-CP1', variant: 'Variant B', pos: 'CP1', name: 'Front View', modules: B_FRONT_MODULES },
+  ];
+  const CAP = Object.fromEntries(CAPTURES.map((c) => [c.id, c]));
+  const valuesOf = (cap) => cap.modules.flatMap((m) => m.values);
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  function emptySetup() {
+    const s = {};
+    CAPTURES.forEach((cap) => { s[cap.id] = {}; valuesOf(cap).forEach((v) => { s[cap.id][v.id] = { on: false, name: v.auto }; }); });
+    return s;
+  }
+  function fullSetup(capIds) {
+    const s = emptySetup();
+    (capIds || CAPTURES.map((c) => c.id)).forEach((id) => valuesOf(CAP[id]).forEach((v) => { s[id][v.id].on = !!v.tick; }));
+    s['A-CP3'].text.name = 'Serial No.';
+    return s;
+  }
+  const ticked = (setup, capId) => Object.values(setup[capId] || {}).filter((x) => x.on).length;
+  const isSetUp = (setup) => CAPTURES.some((c) => ticked(setup, c.id) > 0);
+
+  // ---------- Sample cycles (Line 1 Instance) ----------
+  const cp1 = (result, out) => ({ pos: 'CP1', name: 'Front View', kind: 'front', result, out });
+  const cp3 = (result, out) => ({ pos: 'CP3', name: 'Label Side', kind: 'label', result, out });
+  const front = (screw, slot2, conf2) => ({ screw, screwRes: screw === '4' ? 'OK' : 'NG', washer: '2', washerRes: 'OK',
+    slot1: 'Good', slot1Conf: '0.98', slot1Res: 'OK', slot2, slot2Conf: conf2, slot2Res: slot2 === 'Bad' ? 'NG' : 'OK' });
+  const label = (serial, code, scratch, dent) => ({ text: serial, serialText: serial, serialRes: 'Matched', code,
+    codeRes: code === '—' ? 'NG' : 'OK', scratch, dent,
+    classes: [scratch !== '0' && 'Scratch', dent !== '0' && 'Dent'].filter(Boolean).join(', ') || '—', segRes: 'OK' });
+  const CYCLES = [
+    { ts: '20/10/2026, 02:14:07 PM', variant: 'Variant A', result: true, caps: [
+      cp1(true, front('4', 'Empty', '0.95')), cp3(true, label('SN-48213', 'FRK2026A0042', '2', '0'))] },
+    { ts: '20/10/2026, 02:14:01 PM', variant: 'Variant A', result: false, caps: [
+      cp1(false, front('3', 'Bad', '0.91')), cp3(false, label('SN-48212', '—', '3', '1'))] },
+    { ts: '20/10/2026, 02:13:55 PM', variant: 'Variant A', result: true, caps: [
+      cp1(true, front('4', 'Empty', '0.96')), cp3(true, label('SN-48211', 'FRK2026A0040', '1', '0'))] },
+  ];
+  const capIdOf = (c, cap) => c.variant.slice(-1) + '-' + cap.pos;
+  const resultImages = (c) => c.caps.flatMap((cap) => searchAreas(cap).map((sa) => ({
+    captureName: cap.name, name: sa.name, result: sa.pass !== false,
+    src: frame(cap.kind, frameData(cap), sa.draws, { ...sa.box, name: sa.name, pass: sa.pass }) })));
+  const rawImages = (c) => c.caps.map((cap) => ({ captureName: cap.name, name: 'Raw Image', src: frame(cap.kind, frameData(cap)) }));
+
+  // ---------- State ----------
+  const params = new URLSearchParams(location.search);
+  let mode = params.get('mode') === 'today' ? 'today' : 'after';
+  const state = params.get('state') || '';
+  let saved = state.startsWith('setup') ? emptySetup() : fullSetup();
+
+  // ---------- Columns (mirrors columns.js; Module Outputs sits after Config Result once set up) ----------
+  const BASE_COLUMNS = [
+    { key: 'sno', label: 'S. No.', def: true }, { key: 'timestamp', label: 'Timestamp', def: true },
+    { key: 'overallResult', label: 'Overall Result', def: true }, { key: 'variant', label: 'Variant', def: true },
+    { key: 'userFeedback', label: 'Reverse Judgement' }, { key: 'resultImages', label: 'Result Images (SAs)', def: true },
+    { key: 'rawImages', label: 'Raw Images', def: true }, { key: 'resultsJson', label: 'Result JSON', def: true },
+    { key: 'cameraPosition', label: 'Camera Position' }, { key: 'cameraConfig', label: 'Camera Configuration' },
+    { key: 'configResult', label: 'Config Result' }, { key: 'moduleOutputs', label: 'Module Outputs', def: true, isNew: true },
+    { key: 'className', label: 'Class Name' }, { key: 'classCount', label: 'Class Count' },
+    { key: 'cycleStart', label: 'Cycle Start' }, { key: 'cycleComplete', label: 'Cycle Complete' }, { key: 'comment', label: 'Comment' },
+  ];
+  const WIDTH = { sno: 72, timestamp: 120, overallResult: 100, variant: 100, userFeedback: 120, resultImages: 120, rawImages: 112,
+    resultsJson: 108, cameraPosition: 100, cameraConfig: 128, configResult: 104, moduleOutputs: 222, className: 120, classCount: 110,
+    cycleStart: 120, cycleComplete: 120, comment: 120 };
+  const PER_RESULT = new Set(['sno', 'timestamp', 'overallResult', 'variant', 'userFeedback', 'resultImages', 'rawImages', 'resultsJson', 'cycleStart', 'cycleComplete', 'comment']);
+  const allColumns = () => BASE_COLUMNS.filter((c) => !c.isNew || (mode === 'after' && isSetUp(saved)));
+  let visible = ['sno', 'timestamp', 'overallResult', 'variant', 'resultImages', 'rawImages', 'resultsJson', 'cameraPosition', 'cameraConfig', 'configResult', 'moduleOutputs'];
+  const shownColumns = () => allColumns().filter((c) => visible.includes(c.key));
+
+  const resultText = (ok) => `<span class="res ${ok ? 'p' : 'f'}">${ok ? 'Pass' : 'Fail'}</span>`;
+  function moduleOutputs(c, cap) {
+    const capId = capIdOf(c, cap), conf = saved[capId];
+    if (!conf || !CAP[capId]) return 'N/A';
+    const lines = valuesOf(CAP[capId]).filter((v) => conf[v.id].on && cap.out[v.id] != null);
+    if (!lines.length) return 'N/A';
+    return '<div class="mo">' + lines.map((v) => `<div><span class="k">${esc(conf[v.id].name)}:</span> ${esc(cap.out[v.id])}</div>`).join('') + '</div>';
+  }
+  function cell(key, c, ci, cap, sno) {
+    switch (key) {
+      case 'sno': return sno;
+      case 'timestamp': return c.ts;
+      case 'cycleStart': return c.ts;
+      case 'cycleComplete': return c.ts;
+      case 'overallResult': return resultText(c.result);
+      case 'variant': return c.variant;
+      case 'userFeedback': return '<button type="button" class="mdbtn">Mark</button>';
+      case 'comment': return '<button type="button" class="mdbtn">Comment</button>';
+      case 'resultImages': return `<button type="button" class="lnk" data-view="result" data-cycle="${ci}">View Images</button>`;
+      case 'rawImages': return `<button type="button" class="lnk" data-view="raw" data-cycle="${ci}">View Raw Images</button>`;
+      case 'resultsJson': return '<span class="lnk" style="cursor:pointer">View JSON</span>';
+      case 'cameraPosition': return cap.pos;
+      case 'cameraConfig': return cap.name;
+      case 'configResult': return resultText(cap.result);
+      case 'moduleOutputs': return moduleOutputs(c, cap);
+      case 'className': return cap.kind === 'front' ? 'screw, washer' : 'scratch, dent';
+      case 'classCount': return cap.kind === 'front' ? `${cap.out.screw}, ${cap.out.washer}` : `${cap.out.scratch}, ${cap.out.dent}`;
+      default: return '';
+    }
+  }
+  const td = (html, span, cls) => `<td${cls ? ` class="${cls}"` : ''}${span > 1 ? ` rowspan="${span}"` : ''}><div>${html}</div></td>`;
+
+  function renderTable() {
+    const cols = shownColumns();
+    const total = cols.reduce((n, c) => n + WIDTH[c.key], 0);
+    $('cols').innerHTML = cols.map((c) => `<col style="width:${((WIDTH[c.key] / total) * 100).toFixed(3)}%">`).join('');
+    $('thead').innerHTML = cols.map((c) => `<th scope="col">${c.label}</th>`).join('');
+    let html = '';
+    CYCLES.forEach((c, ci) => {
+      c.caps.forEach((cap, i) => {
+        html += '<tr>' + cols.map(({ key }) => (PER_RESULT.has(key)
+          ? (i === 0 ? td(cell(key, c, ci, cap, ci + 1), c.caps.length) : '')
+          : td(cell(key, c, ci, cap, ci + 1), 1, key === 'moduleOutputs' ? 'mo-td' : ''))).join('') + '</tr>';
+      });
+    });
+    $('tbody').innerHTML = html;
+  }
+  function renderChrome() {
+    document.querySelectorAll('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    $('moBtn').hidden = mode !== 'after';
+  }
+  function renderAll() { renderChrome(); renderTable(); if (!$('etd').hidden) renderEditTable(); }
+
+  // ---------- Edit Table dropdown (mirrors analytics/index.jsx "Customize Columns") ----------
+  const PREREQ = { configResult: ['cameraPosition', 'cameraConfig'], classCount: ['className'] };
+  const locked = (key) => !!PREREQ[key] && !PREREQ[key].every((k) => visible.includes(k));
+  function renderEditTable() {
+    $('etdList').innerHTML = allColumns().map((c) => {
+      const on = visible.includes(c.key), lk = locked(c.key);
+      return `<div class="etd-row${lk ? ' lock' : ''}" role="checkbox" aria-checked="${on}" data-key="${c.key}"><span class="cb${on ? ' on' : ''}"></span><span class="l">${c.label}</span></div>`;
+    }).join('');
+  }
+  function toggleColumn(key) {
+    if (locked(key)) return;
+    const was = visible.includes(key);
+    let next = was ? visible.filter((k) => k !== key) : [...visible, key];
+    const group = ['cameraPosition', 'cameraConfig'];
+    if (group.includes(key)) next = was ? next.filter((k) => !group.includes(k)) : [...new Set([...next, ...group])];
+    if (next.includes('configResult') && !(next.includes('cameraPosition') && next.includes('cameraConfig'))) next = next.filter((k) => k !== 'configResult');
+    if (next.includes('classCount') && !next.includes('className')) next = next.filter((k) => k !== 'classCount');
+    visible = BASE_COLUMNS.map((c) => c.key).filter((k) => next.includes(k));
+    renderEditTable(); renderTable();
+  }
+  function openEditTable() { renderEditTable(); $('etd').hidden = false; $('clickaway').hidden = false; }
+  function closeEditTable() { $('etd').hidden = true; $('clickaway').hidden = true; }
+  $('etBtn').addEventListener('click', () => ($('etd').hidden ? openEditTable() : closeEditTable()));
+  $('etdList').addEventListener('click', (e) => { const r = e.target.closest('[data-key]'); if (r) toggleColumn(r.dataset.key); });
+  $('etReset').addEventListener('click', () => { visible = BASE_COLUMNS.filter((c) => c.def).map((c) => c.key); renderEditTable(); renderTable(); });
+  $('etDone').addEventListener('click', closeEditTable);
+  $('clickaway').addEventListener('click', closeEditTable);
+
+  // ---------- Module Outputs setup modal ----------
+  const M = { sel: 'A-CP1', draft: null };
+  function renderCapList() {
+    let html = '', last = '';
+    CAPTURES.forEach((cap) => {
+      if (cap.variant !== last) { html += `<div class="caps-h">${cap.variant}</div>`; last = cap.variant; }
+      const n = ticked(M.draft, cap.id);
+      html += `<button type="button" class="cap${cap.id === M.sel ? ' on' : ''}" data-cap="${cap.id}" aria-current="${cap.id === M.sel}">` +
+        `<span>${cap.pos} · ${cap.name}</span><span class="cnt${n ? ' on' : ''}">${n}</span></button>`;
+    });
+    $('capList').innerHTML = html;
+  }
+  function renderPane() {
+    const cap = CAP[M.sel], conf = M.draft[M.sel];
+    $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
+      cap.modules.map((m) => `<section class="mcard"><div class="mcard-h"><b>${m.name}</b><span>${m.type}</span></div>` +
+        m.values.map((v) => {
+          const x = conf[v.id], id = `v-${M.sel}-${v.id}`;
+          return `<div class="vrow${x.on ? '' : ' off'}" data-val="${v.id}">` +
+            `<input type="checkbox" id="${id}" ${x.on ? 'checked' : ''} aria-label="Show ${esc(v.auto)}">` +
+            `<input type="text" class="vname" value="${esc(x.name)}" aria-label="Name for ${esc(v.auto)}" maxlength="40">` +
+            `<span class="vex">e.g. ${esc(v.ex)}</span></div>`;
+        }).join('') + '</section>').join('');
+  }
+  function openModal(sel, draft) {
+    closeEditTable();
+    M.sel = sel || 'A-CP1';
+    M.draft = draft || clone(saved);
+    renderCapList(); renderPane();
+    $('mo').hidden = false;
+  }
+  function closeModal() { $('mo').hidden = true; }
+  function saveModal() {
+    const wasSetUp = isSetUp(saved);
+    CAPTURES.forEach((cap) => valuesOf(cap).forEach((v) => {
+      const x = M.draft[cap.id][v.id]; x.name = x.name.trim() || v.auto;
+    }));
+    saved = clone(M.draft);
+    if (isSetUp(saved) && !wasSetUp && !visible.includes('moduleOutputs')) visible = BASE_COLUMNS.map((c) => c.key).filter((k) => k === 'moduleOutputs' || visible.includes(k));
+    closeModal();
+    renderAll();
+    toast('Module Outputs saved');
+  }
+  $('moBtn').addEventListener('click', () => openModal('A-CP1'));
+  $('moClose').addEventListener('click', closeModal);
+  $('moCancel').addEventListener('click', closeModal);
+  $('moSave').addEventListener('click', saveModal);
+  $('mo').addEventListener('mousedown', (e) => { if (e.target === $('mo')) closeModal(); });
+  $('capList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cap]');
+    if (!b || b.dataset.cap === M.sel) return;
+    M.sel = b.dataset.cap; renderCapList(); renderPane();
+  });
+  $('capPane').addEventListener('change', (e) => {
+    if (e.target.type !== 'checkbox') return;
+    const row = e.target.closest('[data-val]');
+    M.draft[M.sel][row.dataset.val].on = e.target.checked;
+    row.classList.toggle('off', !e.target.checked);
+    renderCapList();
+  });
+  $('capPane').addEventListener('input', (e) => {
+    if (!e.target.classList.contains('vname')) return;
+    M.draft[M.sel][e.target.closest('[data-val]').dataset.val].name = e.target.value;
+  });
+
+  let toastTimer = 0;
+  function toast(text) {
+    $('toastText').textContent = text; $('toast').hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 2500);
+  }
+
+  // ---------- Today | After change switch ----------
+  $('seg').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]');
+    if (!b || b.dataset.mode === mode) return;
+    mode = b.dataset.mode;
+    try { history.replaceState(null, '', '?mode=' + mode); } catch (err) { /* file:// may refuse */ }
+    closeModal(); closeEditTable();
+    renderAll();
+  });
+
+  // ---------- Image viewer (mirrors ImageViewer.jsx) ----------
+  $('tbody').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    const c = CYCLES[Number(b.dataset.cycle)];
+    openViewer(b.dataset.view === 'raw' ? rawImages(c) : resultImages(c));
+  });
+  const MIN_ZOOM = 0.5, MAX_ZOOM = 5, STEP = 0.25;
+  const V = { images: [], i: 0, zoom: 1, x: 0, y: 0, drag: null };
+  function openViewer(images) {
+    if (!images.length) return;
+    Object.assign(V, { images, i: 0, zoom: 1, x: 0, y: 0 });
+    $('vw').hidden = false;
+    paint(true);
+  }
+  function closeViewer() { $('vw').hidden = true; }
+  function applyTransform() {
+    $('vwImg').style.transform = `translate(${V.x}px, ${V.y}px) scale(${V.zoom})`;
+    $('vwStage').style.cursor = V.zoom > 1 ? (V.drag ? 'grabbing' : 'grab') : 'default';
+    $('zPct').textContent = Math.round(V.zoom * 100) + '%';
+    $('zOut').disabled = V.zoom <= MIN_ZOOM;
+    $('zIn').disabled = V.zoom >= MAX_ZOOM;
+  }
+  function setZoom(z) { V.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z)); if (V.zoom <= 1) { V.x = 0; V.y = 0; } applyTransform(); }
+  function paint(rebuildThumbs) {
+    const img = V.images[V.i], many = V.images.length > 1;
+    V.zoom = 1; V.x = 0; V.y = 0;
+    $('vwTitle').textContent = img.captureName || 'Unknown';
+    $('vwName').textContent = img.name || 'Image';
+    const chip = $('vwChip');
+    chip.hidden = typeof img.result !== 'boolean';
+    if (!chip.hidden) { chip.className = 'chip ' + (img.result ? 'p' : 'f'); chip.textContent = img.result ? 'Pass' : 'Fail'; }
+    $('vwCount').textContent = `· Image ${V.i + 1} of ${V.images.length}`;
+    const el = $('vwImg'); el.src = img.src; el.alt = img.captureName || img.name;
+    $('vwPrev').hidden = $('vwNext').hidden = !many;
+    const strip = $('vwThumbs');
+    strip.hidden = !many;
+    if (many && rebuildThumbs) {
+      strip.innerHTML = V.images.map((t, idx) => `<button type="button" class="th" data-idx="${idx}" title="${t.name || 'Image'}${typeof t.result === 'boolean' ? ' — ' + (t.result ? 'Pass' : 'Fail') : ''}">` +
+        `<img src="${t.src}" alt="${t.name}" loading="lazy">${typeof t.result === 'boolean' ? `<b class="${t.result ? 'p' : 'f'}">${t.result ? 'Pass' : 'Fail'}</b>` : ''}</button>`).join('');
+    }
+    strip.querySelectorAll('.th').forEach((t) => t.classList.toggle('on', Number(t.dataset.idx) === V.i));
+    applyTransform();
+  }
+  const go = (d) => { const n = V.images.length; V.i = (V.i + d + n) % n; paint(false); };
+  $('vwPrev').addEventListener('click', () => go(-1));
+  $('vwNext').addEventListener('click', () => go(1));
+  $('vwClose').addEventListener('click', closeViewer);
+  $('zIn').addEventListener('click', () => setZoom(V.zoom + STEP));
+  $('zOut').addEventListener('click', () => setZoom(V.zoom - STEP));
+  $('zReset').addEventListener('click', () => setZoom(1));
+  $('vwThumbs').addEventListener('click', (e) => { const t = e.target.closest('.th'); if (t) { V.i = Number(t.dataset.idx); paint(false); } });
+  $('vwPort').addEventListener('wheel', (e) => { e.preventDefault(); setZoom(V.zoom + (e.deltaY < 0 ? STEP : -STEP)); }, { passive: false });
+  $('vwStage').addEventListener('mousedown', (e) => {
+    if (V.zoom <= 1 || e.button !== 0) return;
+    e.preventDefault();
+    V.drag = { x: e.clientX, y: e.clientY, ox: V.x, oy: V.y };
+    $('vwImg').style.transition = 'none';
+    applyTransform();
+  });
+  window.addEventListener('mousemove', (e) => { if (!V.drag) return; V.x = V.drag.ox + e.clientX - V.drag.x; V.y = V.drag.oy + e.clientY - V.drag.y; applyTransform(); });
+  window.addEventListener('mouseup', () => { if (!V.drag) return; V.drag = null; $('vwImg').style.transition = ''; applyTransform(); });
+  window.addEventListener('keydown', (e) => {
+    if (!$('vw').hidden) {
+      if (e.key === 'ArrowLeft') go(-1);
+      else if (e.key === 'ArrowRight') go(1);
+      else if (e.key === 'Escape') closeViewer();
+      else if (e.key === '+' || e.key === '=') setZoom(V.zoom + STEP);
+      else if (e.key === '-') setZoom(V.zoom - STEP);
+      else if (e.key === '0') setZoom(1);
+      return;
+    }
+    if (e.key === 'Escape') { if (!$('mo').hidden) closeModal(); else closeEditTable(); }
+  });
+
+  // ---------- Initial state from the URL ----------
+  renderAll();
+  if (mode === 'after' && state === 'setup-empty') openModal('A-CP1', emptySetup());
+  else if (mode === 'after' && state === 'setup') openModal('A-CP3', fullSetup(['A-CP1', 'A-CP3']));
+  else if (mode === 'after' && state.startsWith('setup-more')) {
+    openModal('B-CP1', fullSetup());
+    if (state === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
+  }
+  else if (state === 'edit-table') {
+    openEditTable();
+    const row = $('etdList').querySelector('[data-key="moduleOutputs"]') || $('etdList').querySelector('[data-key="configResult"]');
+    if (row) $('etdList').scrollTop = Math.max(0, row.offsetTop - $('etdList').offsetTop - 4 * row.offsetHeight);
+  }
+  // ?open=<cycle>:<result|raw>:<image> (1-based) opens the image viewer on load, e.g. ?open=2:result:2
+  const o = (params.get('open') || '').split(':'), oc = CYCLES[Number(o[0]) - 1];
+  if (oc) { openViewer(o[1] === 'raw' ? rawImages(oc) : resultImages(oc)); const n = Number(o[2]) - 1; if (n > 0 && n < V.images.length) { V.i = n; paint(false); } }
+})();
+</script>
+</body>
+</html>

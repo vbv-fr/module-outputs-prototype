@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module Outputs in Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --bg:#f6f6f6; --card:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
+  header { padding:32px 24px 8px; max-width:1200px; margin:0 auto; }
+  h1 { margin:0 0 6px; font-size:28px; font-weight:600; }
+  .sub { color:var(--muted); font-size:15px; }
+  h2 { max-width:1200px; margin:28px auto 12px; padding:0 24px; font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .grid { max-width:1200px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
+  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s; }
+  a.card:hover { border-color:var(--brand); box-shadow:0 4px 18px rgba(0,0,0,.08); }
+  a.card img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top left; border-bottom:1px solid var(--line); }
+  .body { padding:12px 14px 14px; }
+  .t { font-weight:600; font-size:16px; }
+  .us { color:var(--brand); font-size:13px; font-weight:500; margin-top:2px; }
+  footer { max-width:1200px; margin:32px auto; padding:0 24px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Module Outputs in Reports</h1>
+  <div class="sub">Prototype · Frinks Edge · Analytics &amp; Reports · Today / After change switch on every screen</div>
+</header>
+
+<h2>Today</h2>
+<div class="grid">
+  <a class="card" href="reports.html?mode=today"><img src="reports-today.png" alt="Reports table today"><div class="body"><div class="t">Reports table</div><div class="us">Today</div></div></a>
+</div>
+
+<h2>After change</h2>
+<div class="grid">
+  <a class="card" href="reports.html?mode=after&amp;state=setup-empty"><img src="setup-empty.png" alt="Module Outputs setup, nothing ticked"><div class="body"><div class="t">Module Outputs setup: first time</div><div class="us">After change</div></div></a>
+  <a class="card" href="reports.html?mode=after&amp;state=setup"><img src="setup.png" alt="Module Outputs setup, CP3 ticked and renamed"><div class="body"><div class="t">Module Outputs setup: tick and rename</div><div class="us">After change</div></div></a>
+  <a class="card" href="reports.html?mode=after&amp;state=setup-more"><img src="setup-more.png" alt="Module Outputs setup, Variant B CP1 with more module types"><div class="body"><div class="t">Module Outputs setup: more module types</div><div class="us">After change</div></div></a>
+  <a class="card" href="reports.html?mode=after&amp;state=setup-more-end"><img src="setup-more-end.png" alt="Module Outputs setup, Variant B CP1 scrolled to the last modules"><div class="body"><div class="t">Module Outputs setup: more module types (end)</div><div class="us">After change</div></div></a>
+  <a class="card" href="reports.html?mode=after"><img src="reports-after.png" alt="Reports table with Module Outputs column"><div class="body"><div class="t">Reports table: Module Outputs column</div><div class="us">After change</div></div></a>
+  <a class="card" href="reports.html?mode=after&amp;state=edit-table"><img src="edit-table-after.png" alt="Edit Table with Module Outputs checkbox"><div class="body"><div class="t">Edit Table: Module Outputs column</div><div class="us">After change</div></div></a>
+</div>
+
+<footer>Sample data only.</footer>
+</body>
+</html>
