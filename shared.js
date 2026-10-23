@@ -61,12 +61,18 @@
       K(1, 'dim_result'), K(3, 'dim_predicted_value', 'Hole diameter'), K(2, 'dim_unit_used'),
       K(2, 'dim_process'), K(2, 'dim_current_gt')] },
   ];
+  const C_CP1 = [
+    { name: 'Cap Presence', type: 'Object Detection & Classification', code: 'ODC', keys: modKeys(), classes: [clsKeys('Cap')] },
+  ];
   // Capture keys used in the shared state: "<variant letter>-<camera position>"
   const CAPTURES = [
-    { id: 'A-CP1', variant: 'Variant A', pos: 'CP1', name: 'Front View', modules: A_CP1 },
-    { id: 'A-CP3', variant: 'Variant A', pos: 'CP3', name: 'Label Side', modules: A_CP3 },
-    { id: 'B-CP1', variant: 'Variant B', pos: 'CP1', name: 'Front View', modules: B_CP1 },
+    { id: 'A-CP1', inst: 'line1', variant: 'Variant A', pos: 'CP1', name: 'Front View', modules: A_CP1 },
+    { id: 'A-CP3', inst: 'line1', variant: 'Variant A', pos: 'CP3', name: 'Label Side', modules: A_CP3 },
+    { id: 'B-CP1', inst: 'line1', variant: 'Variant B', pos: 'CP1', name: 'Front View', modules: B_CP1 },
+    { id: 'C-CP1', inst: 'line2', variant: 'Variant C', pos: 'CP1', name: 'Top View', modules: C_CP1 },
   ];
+  const INSTANCES = [{ id: 'line1', name: 'Line 1 Instance' }, { id: 'line2', name: 'Line 2 Instance' }];
+  const capsOf = (instId) => CAPTURES.filter((c) => c.inst === instId);
   // Expand every card (capture-level first) into ordered key rows with stable ids.
   CAPTURES.forEach((cap) => {
     cap.cards = [confCard(cap)].concat(cap.modules).map((m) => {
@@ -78,29 +84,47 @@
   const valuesOf = (cap) => cap.cards.flatMap((m) => m.rows);
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
-  // Setup: { "<captureKey>": { "<keyId>": "<Display Name>" } } (a key is ticked when it has an entry). Stored as-is.
-  function emptySetup() { const s = {}; CAPTURES.forEach((cap) => { s[cap.id] = {}; }); return s; }
-  function sampleSetup() {
-    const s = emptySetup();
-    CAPTURES.forEach((cap) => valuesOf(cap).forEach((k) => { if (k.sample) s[cap.id][k.id] = k.sample; }));
+  // Setup of one instance: { "<captureKey>": { "<keyId>": "<Display Name>" } } (ticked = has an entry).
+  // Stored: { saved, instances: { line1: { mode: 'same'|'separate', setup }, line2: { … } } }.
+  function emptySetup(instId) { const s = {}; capsOf(instId).forEach((cap) => { s[cap.id] = {}; }); return s; }
+  function sampleSetup(instId) {
+    const s = emptySetup(instId);
+    capsOf(instId).forEach((cap) => valuesOf(cap).forEach((k) => { if (k.sample) s[cap.id][k.id] = k.sample; }));
     return s;
   }
-  // Only the current shape counts; anything older is treated as nothing saved.
-  function validStored(st) {
-    if (!st || !st.saved || !st.setup || typeof st.setup !== 'object' || Array.isArray(st.setup)) return false;
-    return Object.values(st.setup).every((m) => m && typeof m === 'object' && !Array.isArray(m) && Object.values(m).every((v) => typeof v === 'string'));
-  }
-  function normalizeSetup(stored) {
-    const s = emptySetup();
-    CAPTURES.forEach((cap) => {
+  function normalizeSetup(instId, stored) {
+    const s = emptySetup(instId);
+    capsOf(instId).forEach((cap) => {
       const m = (stored && stored[cap.id]) || {};
       valuesOf(cap).forEach((k) => { if (typeof m[k.id] === 'string' && m[k.id].trim()) s[cap.id][k.id] = m[k.id].trim().slice(0, 40); });
     });
     return s;
   }
-  const toStored = (setup) => normalizeSetup(setup);
+  const normMode = (m) => (m === 'separate' ? 'separate' : 'same');
+  // Only the current shape counts; anything older is treated as nothing saved.
+  function validStored(st) {
+    if (!st || !st.saved || !st.instances || typeof st.instances !== 'object' || Array.isArray(st.instances)) return false;
+    return Object.values(st.instances).every((x) => x && typeof x === 'object' && x.setup && typeof x.setup === 'object' && !Array.isArray(x.setup) &&
+      Object.values(x.setup).every((m) => m && typeof m === 'object' && !Array.isArray(m) && Object.values(m).every((v) => typeof v === 'string')));
+  }
+  function normalizeState(instances) {
+    const out = {};
+    INSTANCES.forEach((i) => { const x = (instances && instances[i.id]) || {}; out[i.id] = { mode: normMode(x.mode), setup: normalizeSetup(i.id, x.setup) }; });
+    return out;
+  }
   const ticked = (setup, capId) => Object.keys((setup && setup[capId]) || {}).length;
-  const isSetUp = (setup) => CAPTURES.some((c) => ticked(setup, c.id) > 0);
+  const isSetUp = (setup) => Object.keys(setup || {}).some((capId) => ticked(setup, capId) > 0);
+  // Separate-columns mode: one column per Display Name, in setup order (capture, module, key); same name = one column.
+  function keyColumns(instId, setup) {
+    const cols = [], seen = new Set();
+    capsOf(instId).forEach((cap) => valuesOf(cap).forEach((k) => {
+      const n = setup[cap.id] && setup[cap.id][k.id];
+      if (!n) return;
+      const low = n.toLowerCase();
+      if (!seen.has(low)) { seen.add(low); cols.push(n); }
+    }));
+    return cols;
+  }
 
   // ---------- Sample cycles (Line 1 Instance, newest first) ----------
   // Per-cycle values. Running counters (pass/fail counts, count till now, averages, completion status) have no
@@ -133,24 +157,31 @@
       cp3(true, cp3Out('SN-48211', 'FRK2026A0040', 137), { text: 'SN-48211', code: 'FRK2026A0040', scratch: '1', dent: '0' })] },
   ];
   const capIdOf = (cycle, cap) => cycle.variant.slice(-1) + '-' + cap.pos;
-  // Ticked keys of one capture row, in setup order: [{ name: Display Name, value }]
+  // Ticked keys of one capture row (Line 1 Instance cycles), in setup order: [{ name: Display Name, value }]
   function outputLines(cycle, cap, setup) {
     const capId = capIdOf(cycle, cap), conf = setup && setup[capId];
     if (!conf || !CAP[capId]) return [];
     return valuesOf(CAP[capId]).filter((k) => conf[k.id]).map((k) => ({ name: conf[k.id], value: cap.out[k.id] != null ? cap.out[k.id] : '—' }));
   }
+  // Separate mode cell: the value of this capture's key with that Display Name, '' when the capture has none.
+  function keyCell(cycle, cap, setup, colName) {
+    const l = outputLines(cycle, cap, setup).find((x) => x.name.toLowerCase() === colName.toLowerCase());
+    return l ? l.value : '';
+  }
 
-  // Which setup a screen shows: the saved one once the user has saved, else the fallback for that step.
-  function resolveSetup(useSample) {
+  // What a screen shows: the saved state once the user has saved, else the fallback (Line 1 sample or empty, same column).
+  function resolveState(useSample) {
     const st = readStore();
-    if (validStored(st)) return { stored: true, setup: normalizeSetup(st.setup) };
-    return { stored: false, setup: useSample ? sampleSetup() : emptySetup() };
+    if (validStored(st)) return { stored: true, instances: normalizeState(st.instances) };
+    const instances = {};
+    INSTANCES.forEach((i) => { instances[i.id] = { mode: 'same', setup: useSample ? sampleSetup(i.id) : emptySetup(i.id) }; });
+    return { stored: false, instances };
   }
 
   function modeFromUrl() {
     try { return new URLSearchParams(location.search).get('mode') === 'today' ? 'today' : 'after'; } catch (e) { return 'after'; }
   }
 
-  g.MO = { KEY, EMBED, readStore, writeStore, postNav, CAPTURES, CAP, valuesOf, clone, emptySetup, sampleSetup,
-    normalizeSetup, ticked, isSetUp, toStored, CYCLES, capIdOf, outputLines, resolveSetup, modeFromUrl };
+  g.MO = { KEY, EMBED, readStore, writeStore, postNav, CAPTURES, CAP, INSTANCES, capsOf, valuesOf, clone, emptySetup, sampleSetup,
+    normalizeSetup, normalizeState, ticked, isSetUp, keyColumns, keyCell, CYCLES, capIdOf, outputLines, resolveState, modeFromUrl };
 })(window);

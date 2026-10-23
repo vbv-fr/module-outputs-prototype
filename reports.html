@@ -171,6 +171,26 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 .md-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 24px}
 .md-head h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
 .md-sub{font-size:14px;line-height:20px;color:var(--muted)}
+.md-head h3{align-self:center}
+.mtop{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:0 24px 16px}
+.mtop-l{font-size:14px;line-height:20px;font-weight:500;color:var(--text-2)}
+.isel{position:relative}
+.isel-b{display:flex;align-items:center;justify-content:space-between;gap:6px;height:38px;min-width:190px;padding:0 12px;border:1px solid var(--border);border-radius:8px;
+  background:var(--surface);font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.isel-b:hover{background:var(--hover)}
+.isel-b .i{width:14px;height:14px;color:var(--muted);transition:transform .15s}
+.isel-b[aria-expanded="true"] .i{transform:rotate(180deg)}
+.isel-b .ph{color:var(--muted-2)}
+.isel-p{position:absolute;left:0;top:100%;z-index:60;margin-top:4px;min-width:100%;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;
+  background:var(--surface);box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)}
+.isel-o{display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;text-align:left;font-size:13px;font-weight:500;color:var(--text-2);white-space:nowrap}
+.isel-o:hover{background:var(--hover)}
+.rdot{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;border:1px solid var(--cb-off);border-radius:999px;background:var(--cb-bg)}
+.rdot.on{border-color:var(--cb-on)} .rdot.on::after{content:"";width:8px;height:8px;border-radius:999px;background:var(--cb-on)}
+.dmode{display:flex;align-items:center;gap:20px;margin-left:24px}
+.dmode label{display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:var(--ink);cursor:pointer}
+.dmode input{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.dmode.off{opacity:.5;pointer-events:none}
 .md-x{display:flex;color:var(--ink)}
 .md-x svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .md-body{display:flex;min-height:0;height:min(620px, calc(100vh - 220px));margin:0 24px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
@@ -369,7 +389,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   <div class="fbar">
     <div class="fleft">
       <button type="button" class="fbtn">20/10/2026 00:00 → 20/10/2026 23:59 <svg class="i"><use href="#i-down"/></svg></button>
-      <button type="button" class="fbtn" style="max-width:131px"><span class="t">Line 1 Instance</span><svg class="i"><use href="#i-down"/></svg></button>
+      <button type="button" class="fbtn" style="max-width:131px"><span class="t" id="fInst">Line 1 Instance</span><svg class="i"><use href="#i-down"/></svg></button>
       <button type="button" class="fbtn">Variant <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
       <button type="button" class="fbtn" style="width:100px">Outcome <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
     </div>
@@ -405,8 +425,8 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   </div>
 
   <section class="tablewrap">
-    <div class="tscroll">
-      <table>
+    <div class="tscroll" id="tscroll">
+      <table id="rtable">
         <colgroup id="cols"></colgroup>
         <thead><tr id="thead"></tr></thead>
         <tbody id="tbody"></tbody>
@@ -426,11 +446,19 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
 <div class="ov" id="mo" hidden>
   <div class="md" role="dialog" aria-modal="true" aria-labelledby="moTitle">
     <div class="md-head">
-      <div>
-        <h3 id="moTitle">Module Outputs</h3>
-        <div class="md-sub">Line 1 Instance</div>
-      </div>
+      <h3 id="moTitle">Module Outputs</h3>
       <button type="button" class="md-x" id="moClose" aria-label="Close"><svg viewBox="0 0 32 32"><path d="M24 8L8 24M8 8L24 24"/></svg></button>
+    </div>
+    <div class="mtop">
+      <span class="mtop-l" id="iselLbl">Instance</span>
+      <div class="isel" id="isel">
+        <button type="button" class="isel-b" id="iselBtn" aria-haspopup="listbox" aria-labelledby="iselLbl"><span id="iselTxt"></span><svg class="i"><use href="#i-down"/></svg></button>
+        <div class="isel-p" id="iselPanel" role="listbox" hidden></div>
+      </div>
+      <div class="dmode" id="dmode" role="radiogroup">
+        <label><input type="radio" name="dmode" value="same">Show in same column</label>
+        <label><input type="radio" name="dmode" value="separate">Show in separate columns</label>
+      </div>
     </div>
     <div class="md-body">
       <nav class="caps" id="capList" aria-label="Captures"></nav>
@@ -502,7 +530,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   </div>
 </div>
 
-<script src="shared.js?v=20261023d"></script>
+<script src="shared.js?v=20261024a"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -613,21 +641,27 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const mode = MO.modeFromUrl();
   const rawState = params.get('state') || '';
   const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
-  const STEPS = ['table', 'setup', 'choose', 'more-modules', 'column', 'edit-table', 'search', 'no-permission'];
+  const STEPS = ['table', 'setup', 'instance', 'choose', 'setup-separate', 'more-modules', 'column', 'separate', 'edit-table', 'search', 'no-permission'];
   let step = ALIAS[rawState] || rawState;
   if (!STEPS.includes(step)) step = mode === 'after' ? 'column' : 'table';
   const after = mode === 'after';
   const noPermission = after && step === 'no-permission';
 
   // ---------- Shared setup (localStorage via shared.js) ----------
-  const S = { saved: false, setup: null };
+  // Instance picked in the Reports filter bar (?instance=none = nothing picked). The sample cycles belong to Line 1.
+  const filterInst = params.get('instance') === 'none' ? '' : 'line1';
+  const S = { saved: false, inst: null };
   function loadState() {
-    const firstTime = step === 'table' || step === 'setup';
-    const r = MO.resolveSetup(!firstTime);
-    S.setup = r.setup;
-    S.saved = r.stored || (!firstTime && step !== 'choose' && step !== 'more-modules');
+    const firstTime = ['table', 'setup', 'instance'].includes(step);
+    const r = MO.resolveState(!firstTime);
+    S.inst = r.instances;
+    S.saved = r.stored || (!firstTime && !['choose', 'setup-separate', 'more-modules'].includes(step));
+    // The Separate columns step (or ?display=separate) shows Line 1 in separate-columns mode without saving it.
+    if (step === 'separate' || params.get('display') === 'separate') S.inst.line1 = Object.assign({}, S.inst.line1, { mode: 'separate' });
   }
-  const moAvailable = () => after && S.saved && isSetUp(S.setup);
+  const curSetup = () => (filterInst ? S.inst[filterInst].setup : {});
+  const curMode = () => (filterInst ? S.inst[filterInst].mode : 'same');
+  const moAvailable = () => after && S.saved && !!filterInst && isSetUp(curSetup());
 
   // ---------- Columns (mirrors columns.js; Module Outputs after Config Result once set up) ----------
   const BASE_COLUMNS = [
@@ -644,18 +678,33 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     resultsJson: 108, cameraPosition: 100, cameraConfig: 128, configResult: 104, moduleOutputs: 222, className: 120, classCount: 110,
     cycleStart: 120, cycleComplete: 120, comment: 120 };
   const PER_RESULT = new Set(['sno', 'timestamp', 'overallResult', 'variant', 'userFeedback', 'resultImages', 'rawImages', 'resultsJson', 'cycleStart', 'cycleComplete', 'comment']);
-  const allColumns = () => BASE_COLUMNS.filter((c) => !c.isNew || moAvailable());
+  // Same column: one Module Outputs column. Separate columns: one column per Display Name, after Config Result.
+  function allColumns() {
+    const out = [];
+    BASE_COLUMNS.forEach((c) => {
+      if (!c.isNew) { out.push(c); return; }
+      if (!moAvailable()) return;
+      if (curMode() === 'same') out.push(c);
+      else MO.keyColumns(filterInst, curSetup()).forEach((n) => out.push({ key: 'k:' + n, label: n, keyCol: n }));
+    });
+    return out;
+  }
+  const hiddenKeys = new Set();   // key columns switched off in Edit Table (all on by default)
+  const isOn = (c) => (c.keyCol ? !hiddenKeys.has(c.key) : visible.includes(c.key));
   let visible = ['sno', 'timestamp', 'overallResult', 'variant', 'resultImages', 'rawImages', 'resultsJson', 'cameraPosition', 'cameraConfig', 'configResult', 'moduleOutputs'];
-  const shownColumns = () => allColumns().filter((c) => visible.includes(c.key));
+  const shownColumns = () => allColumns().filter(isOn);
 
   const className = (cap) => (cap.kind === 'front' ? 'screw, washer' : 'scratch, dent');
   const classCount = (cap) => (cap.kind === 'front' ? `${cap.frame.screw}, 2` : `${cap.frame.scratch}, ${cap.frame.dent}`);
-  const moText = (c, cap) => outputLines(c, cap, S.setup).map((l) => `${l.name}: ${l.value}`);
+  const moText = (c, cap) => outputLines(c, cap, curSetup()).map((l) => `${l.name}: ${l.value}`);
+  const colW = (c) => (c.keyCol ? 130 : WIDTH[c.key]);
 
   // ---------- Search (mirrors analytics/index.jsx filteredReportData; now also reads Module Outputs) ----------
   let term = step === 'search' ? (params.get('q') != null ? params.get('q') : 'SN-48212') : '';
   function filtered() {
-    const t = term.trim().toLowerCase(), vis = new Set(shownColumns().map((c) => c.key));
+    if (!filterInst) return [];
+    const shown = shownColumns(), t = term.trim().toLowerCase(), vis = new Set(shown.map((c) => c.key));
+    const keyCols = shown.filter((c) => c.keyCol).map((c) => c.keyCol);
     const all = CYCLES.map((c, ci) => ({ c, ci, rows: c.caps }));
     if (!t) return all;
     return all.map((it) => {
@@ -666,7 +715,8 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
       const rows = c.caps.filter((cap) => (vis.has('timestamp') && has(c.ts)) || (vis.has('cameraPosition') && has(cap.pos)) ||
         (vis.has('cameraConfig') && has(cap.name)) || (vis.has('configResult') && t.length >= 3 && has(cap.result ? 'pass' : 'fail')) ||
         (vis.has('className') && has(className(cap))) || (vis.has('classCount') && has(classCount(cap))) ||
-        (vis.has('moduleOutputs') && moText(c, cap).some(has)));
+        (vis.has('moduleOutputs') && moText(c, cap).some(has)) ||
+        keyCols.some((n) => has(MO.keyCell(c, cap, curSetup(), n))));
       return rows.length ? { ...it, rows } : null;
     }).filter(Boolean);
   }
@@ -674,7 +724,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   // ---------- Table (mirrors ResultTable.jsx: per-result cells rowSpan across capture sub-rows) ----------
   const resultText = (ok) => `<span class="res ${ok ? 'p' : 'f'}">${ok ? 'Pass' : 'Fail'}</span>`;
   function moduleOutputsCell(c, cap) {
-    const lines = outputLines(c, cap, S.setup);
+    const lines = outputLines(c, cap, curSetup());
     if (!lines.length) return 'N/A';
     return '<div class="mo">' + lines.map((l) => `<div><span class="k">${esc(l.name)}:</span> ${esc(l.value)}</div>`).join('') + '</div>';
   }
@@ -695,15 +745,18 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
       case 'moduleOutputs': return moduleOutputsCell(c, cap);
       case 'className': return className(cap);
       case 'classCount': return classCount(cap);
-      default: return '';
+      default: return key.startsWith('k:') ? esc(MO.keyCell(c, cap, curSetup(), key.slice(2))) : '';
     }
   }
   const td = (html, span, cls) => `<td${cls ? ` class="${cls}"` : ''}${span > 1 ? ` rowspan="${span}"` : ''}><div>${html}</div></td>`;
 
   function renderTable() {
-    const cols = shownColumns(), total = cols.reduce((n, c) => n + WIDTH[c.key], 0), data = filtered();
-    $('cols').innerHTML = cols.map((c) => `<col style="width:${((WIDTH[c.key] / total) * 100).toFixed(3)}%">`).join('');
-    $('thead').innerHTML = cols.map((c) => `<th scope="col">${c.label}</th>`).join('');
+    const cols = shownColumns(), total = cols.reduce((n, c) => n + colW(c), 0), data = filtered();
+    // Columns fill the width; when they need more room than there is, the table scrolls sideways.
+    const scroll = total > ($('tscroll').clientWidth || 1286);
+    $('rtable').style.width = scroll ? total + 'px' : ''; $('rtable').style.minWidth = scroll ? total + 'px' : '';
+    $('cols').innerHTML = cols.map((c) => `<col style="width:${scroll ? colW(c) + 'px' : ((colW(c) / total) * 100).toFixed(3) + '%'}">`).join('');
+    $('thead').innerHTML = cols.map((c) => `<th scope="col">${esc(c.label)}</th>`).join('');
     let html = '';
     data.forEach((it, n) => {
       const sno = n + 1;
@@ -713,7 +766,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
           : td(cell(key, it.c, it.ci, cap, sno), 1, key === 'moduleOutputs' ? 'mo-td' : ''))).join('') + '</tr>';
       });
     });
-    if (!data.length) html = `<tr><td class="empty" colspan="${cols.length}">No results found.</td></tr>`;
+    if (!data.length) html = `<tr><td class="empty" colspan="${cols.length}">${filterInst ? 'No results found.' : 'Select Instance and Variant to load data.'}</td></tr>`;
     $('tbody').innerHTML = html;
     // Summary bar + pager follow the search, as in the app
     const pass = data.filter((it) => it.c.result).length, fail = data.length - pass;
@@ -727,6 +780,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     $('moBtn').disabled = noPermission;
     $('moTip').hidden = !noPermission;
     $('moTip').classList.toggle('show', noPermission);
+    $('fInst').textContent = filterInst ? 'Line 1 Instance' : 'Instance';
     $('search').value = term;
     $('sclear').hidden = !term;
   }
@@ -737,12 +791,13 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const locked = (key) => !!PREREQ[key] && !PREREQ[key].every((k) => visible.includes(k));
   function renderEditTable() {
     $('etdList').innerHTML = allColumns().map((c) => {
-      const on = visible.includes(c.key), lk = locked(c.key);
-      return `<div class="etd-row${lk ? ' lock' : ''}" role="checkbox" aria-checked="${on}" data-key="${c.key}"><span class="cb${on ? ' on' : ''}"></span><span class="l">${c.label}</span></div>`;
+      const on = isOn(c), lk = locked(c.key);
+      return `<div class="etd-row${lk ? ' lock' : ''}" role="checkbox" aria-checked="${on}" data-key="${esc(c.key)}"><span class="cb${on ? ' on' : ''}"></span><span class="l">${esc(c.label)}</span></div>`;
     }).join('');
   }
   function toggleColumn(key) {
     if (locked(key)) return;
+    if (key.startsWith('k:')) { if (hiddenKeys.has(key)) hiddenKeys.delete(key); else hiddenKeys.add(key); renderEditTable(); renderTable(); return; }
     const was = visible.includes(key);
     let next = was ? visible.filter((k) => k !== key) : [...visible, key];
     const group = ['cameraPosition', 'cameraConfig'];
@@ -759,7 +814,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     $('etd').hidden ? openEditTable() : closeEditTable();
   });
   $('etdList').addEventListener('click', (e) => { const r = e.target.closest('[data-key]'); if (r) toggleColumn(r.dataset.key); });
-  $('etReset').addEventListener('click', () => { visible = BASE_COLUMNS.filter((c) => c.def).map((c) => c.key); renderEditTable(); renderTable(); });
+  $('etReset').addEventListener('click', () => { visible = BASE_COLUMNS.filter((c) => c.def).map((c) => c.key); hiddenKeys.clear(); renderEditTable(); renderTable(); });
   $('etDone').addEventListener('click', closeEditTable);
   $('clickaway').addEventListener('click', closeEditTable);
 
@@ -773,11 +828,25 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   $('sclear').addEventListener('click', () => { term = ''; $('search').value = ''; $('sclear').hidden = true; renderTable(); });
 
   // ---------- Module Outputs setup modal ----------
-  // Draft while the window is open: ticked keys, typed Display Names (kept when unticked until Save/Cancel), touched rows.
-  const M = { sel: 'A-CP1', on: null, names: null, touched: new Set() };
-  const tk = (capId, id) => capId + '::' + id;
-  function capErrors(capId) {
-    const on = M.on[capId] || {}, names = M.names[capId] || {}, errs = {}, seen = {};
+  // Draft while the window is open, per instance: ticked keys, typed Display Names (kept when unticked until
+  // Save/Cancel), display mode, and whether it changed. Save writes every changed instance.
+  const M = { inst: '', sel: null, d: {}, touched: new Set() };
+  function draftFor(instId) {
+    if (!M.d[instId]) {
+      const x = S.inst[instId], on = {}, names = {};
+      MO.capsOf(instId).forEach((c) => {
+        const conf = x.setup[c.id] || {};
+        on[c.id] = Object.fromEntries(Object.keys(conf).map((id) => [id, true]));
+        names[c.id] = Object.assign({}, conf);
+      });
+      M.d[instId] = { on, names, mode: x.mode, dirty: false };
+    }
+    return M.d[instId];
+  }
+  const Dr = () => draftFor(M.inst);
+  const tk = (capId, id) => M.inst + '::' + capId + '::' + id;
+  function capErrors(instId, capId) {
+    const d = draftFor(instId), on = d.on[capId] || {}, names = d.names[capId] || {}, errs = {}, seen = {};
     Object.keys(on).forEach((id) => {
       const v = (names[id] || '').trim();
       if (!v) { errs[id] = 'Enter a display name'; return; }
@@ -787,12 +856,21 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     Object.values(seen).forEach((ids) => { if (ids.length > 1) ids.forEach((id) => { errs[id] = 'Name already used in this capture'; }); });
     return errs;
   }
-  const anyError = () => CAPTURES.some((c) => Object.keys(capErrors(c.id)).length > 0);
+  const anyError = () => Object.keys(M.d).some((inst) => MO.capsOf(inst).some((c) => Object.keys(capErrors(inst, c.id)).length > 0));
+
+  function renderTop() {
+    const name = (MO.INSTANCES.find((i) => i.id === M.inst) || {}).name;
+    $('iselTxt').innerHTML = name ? esc(name) : '<span class="ph">Select an instance</span>';
+    $('iselPanel').innerHTML = MO.INSTANCES.map((i) => `<button type="button" class="isel-o" role="option" aria-selected="${i.id === M.inst}" data-inst="${i.id}">` +
+      `<span class="rdot${i.id === M.inst ? ' on' : ''}"></span>${esc(i.name)}</button>`).join('');
+    $('dmode').classList.toggle('off', !M.inst);
+    document.querySelectorAll('#dmode input').forEach((r) => { r.checked = !!M.inst && r.value === Dr().mode; r.disabled = !M.inst; });
+  }
   function renderCapList() {
     let html = '', last = '';
-    CAPTURES.forEach((cap) => {
+    if (M.inst) MO.capsOf(M.inst).forEach((cap) => {
       if (cap.variant !== last) { html += `<div class="caps-h">${cap.variant}</div>`; last = cap.variant; }
-      const n = Object.keys(M.on[cap.id] || {}).length;
+      const n = Object.keys(Dr().on[cap.id] || {}).length;
       html += `<button type="button" class="cap${cap.id === M.sel ? ' on' : ''}" data-cap="${cap.id}" aria-current="${cap.id === M.sel}">` +
         `<span>${cap.pos} · ${cap.name}</span><span class="cnt${n ? ' on' : ''}">${n}</span></button>`;
     });
@@ -803,12 +881,13 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const seg = (cls, prefix, name) => `<span style="display:inline-flex;align-items:center">${chip(cls, prefix)}<span class="kl">${esc(name)}</span></span>`;
   const SEP = '<span class="ksep">&gt;</span>';
   function rowInner(k) {
-    const on = !!M.on[M.sel][k.id], name = M.names[M.sel][k.id] || '';
+    const on = !!Dr().on[M.sel][k.id], name = Dr().names[M.sel][k.id] || '';
     return `<label class="vl"><input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(k.id)}">` +
       `<span class="kb">${k.cls ? seg('b', 'cls', k.cls) + SEP : ''}${seg('r', 'key-' + TYPE[k.t], k.s)}</span></label>` +
       (on ? `<div class="dnw"><input type="text" class="dn" maxlength="40" placeholder="Display Name" value="${esc(name)}" aria-label="Display Name for ${esc(k.s)}"><div class="dnerr" hidden></div></div>` : '');
   }
   function renderPane() {
+    if (!M.inst || !M.sel) { $('capPane').innerHTML = ''; refreshErrors(); return; }
     const cap = CAP[M.sel];
     $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
       cap.cards.map((m) => `<section class="mcard"><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}</div>` +
@@ -819,28 +898,37 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     $('capPane').scrollTop = 0;
     refreshErrors();
   }
-  // Duplicate names show at once; an empty name shows once its row has been left. Save waits for every capture.
+  // Duplicate names show at once; an empty name shows once its row has been left. Save waits for every instance.
   function refreshErrors() {
-    const errs = capErrors(M.sel);
-    $('capPane').querySelectorAll('.vrow').forEach((row) => {
-      const inp = row.querySelector('.dn'); if (!inp) return;
-      const id = row.dataset.val, msg = errs[id];
-      const show = msg && (msg !== 'Enter a display name' || M.touched.has(tk(M.sel, id)));
-      inp.classList.toggle('err', !!show);
-      const e = row.querySelector('.dnerr'); e.hidden = !show; e.textContent = show ? msg : '';
-    });
+    if (M.inst && M.sel) {
+      const errs = capErrors(M.inst, M.sel);
+      $('capPane').querySelectorAll('.vrow').forEach((row) => {
+        const inp = row.querySelector('.dn'); if (!inp) return;
+        const id = row.dataset.val, msg = errs[id];
+        const show = msg && (msg !== 'Enter a display name' || M.touched.has(tk(M.sel, id)));
+        inp.classList.toggle('err', !!show);
+        const e = row.querySelector('.dnerr'); e.hidden = !show; e.textContent = show ? msg : '';
+      });
+    }
     $('moSave').disabled = anyError();
   }
+  function markLeft() { if (M.inst && M.sel) Object.keys(Dr().on[M.sel]).forEach((id) => M.touched.add(tk(M.sel, id))); }
+  function switchInstance(id) {
+    closeInstPanel();
+    if (id === M.inst) return;
+    markLeft();
+    M.inst = id;
+    M.sel = id ? MO.capsOf(id)[0].id : null;
+    renderTop(); renderCapList(); renderPane();
+  }
+  function openInstPanel() { $('iselPanel').hidden = false; $('iselBtn').setAttribute('aria-expanded', 'true'); }
+  function closeInstPanel() { $('iselPanel').hidden = true; $('iselBtn').setAttribute('aria-expanded', 'false'); }
   function openModal(sel) {
-    closeEditTable();
-    M.sel = sel || 'A-CP1';
-    M.on = {}; M.names = {}; M.touched = new Set();
-    CAPTURES.forEach((c) => {
-      const conf = S.setup[c.id] || {};
-      M.on[c.id] = Object.fromEntries(Object.keys(conf).map((id) => [id, true]));
-      M.names[c.id] = Object.assign({}, conf);
-    });
-    renderCapList(); renderPane();
+    closeEditTable(); closeInstPanel();
+    M.d = {}; M.touched = new Set();
+    M.inst = filterInst;
+    M.sel = M.inst ? (sel && CAP[sel] && CAP[sel].inst === M.inst ? sel : MO.capsOf(M.inst)[0].id) : null;
+    renderTop(); renderCapList(); renderPane();
     $('mo').hidden = false;
   }
   const modalOpen = () => !$('mo').hidden;
@@ -850,10 +938,15 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   }
   function saveModal() {
     if (anyError()) return;
-    const setup = {};
-    CAPTURES.forEach((c) => { setup[c.id] = {}; Object.keys(M.on[c.id]).forEach((id) => { setup[c.id][id] = M.names[c.id][id].trim(); }); });
-    S.setup = MO.normalizeSetup(setup); S.saved = true;
-    MO.writeStore({ saved: true, setup: MO.toStored(S.setup) });
+    const inst = MO.clone(S.inst);
+    Object.entries(M.d).forEach(([id, x]) => {
+      if (!x.dirty) return;
+      const setup = {};
+      MO.capsOf(id).forEach((c) => { setup[c.id] = {}; Object.keys(x.on[c.id]).forEach((k) => { setup[c.id][k] = (x.names[c.id][k] || '').trim(); }); });
+      inst[id] = { mode: x.mode, setup: MO.normalizeSetup(id, setup) };
+    });
+    S.inst = MO.normalizeState(inst); S.saved = true;
+    MO.writeStore({ saved: true, instances: S.inst });
     $('mo').hidden = true;
     if (MO.postNav('column', { toast: 'saved' })) return;
     if (!visible.includes('moduleOutputs')) visible = BASE_COLUMNS.map((c) => c.key).filter((k) => k === 'moduleOutputs' || visible.includes(k));
@@ -868,17 +961,24 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   $('moClose').addEventListener('click', closeModal);
   $('moCancel').addEventListener('click', closeModal);
   $('moSave').addEventListener('click', saveModal);
-  $('mo').addEventListener('mousedown', (e) => { if (e.target === $('mo')) closeModal(); });
+  $('mo').addEventListener('mousedown', (e) => {
+    if (e.target === $('mo')) { closeModal(); return; }
+    if (!$('iselPanel').hidden && !e.target.closest('#isel')) closeInstPanel();
+  });
+  $('iselBtn').addEventListener('click', () => ($('iselPanel').hidden ? openInstPanel() : closeInstPanel()));
+  $('iselPanel').addEventListener('click', (e) => { const o = e.target.closest('[data-inst]'); if (o) switchInstance(o.dataset.inst); });
+  $('dmode').addEventListener('change', (e) => { if (!M.inst || e.target.name !== 'dmode') return; Dr().mode = e.target.value; Dr().dirty = true; });
   $('capList').addEventListener('click', (e) => {
     const b = e.target.closest('[data-cap]');
     if (!b || b.dataset.cap === M.sel) return;
-    Object.keys(M.on[M.sel]).forEach((id) => M.touched.add(tk(M.sel, id)));
+    markLeft();
     M.sel = b.dataset.cap; renderCapList(); renderPane();
   });
   $('capPane').addEventListener('change', (e) => {
     if (e.target.type !== 'checkbox') return;
     const row = e.target.closest('[data-val]'), id = row.dataset.val;
-    if (e.target.checked) M.on[M.sel][id] = true; else delete M.on[M.sel][id];
+    if (e.target.checked) Dr().on[M.sel][id] = true; else delete Dr().on[M.sel][id];
+    Dr().dirty = true;
     const k = CAP[M.sel].cards.flatMap((m) => m.rows).find((r) => r.id === id);
     row.innerHTML = rowInner(k);
     if (e.target.checked) row.querySelector('.dn').focus();
@@ -886,7 +986,8 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   });
   $('capPane').addEventListener('input', (e) => {
     if (!e.target.classList.contains('dn')) return;
-    M.names[M.sel][e.target.closest('[data-val]').dataset.val] = e.target.value;
+    Dr().names[M.sel][e.target.closest('[data-val]').dataset.val] = e.target.value;
+    Dr().dirty = true;
     refreshErrors();
   });
   $('capPane').addEventListener('focusout', (e) => {
@@ -1011,6 +1112,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     }
     if (e.key !== 'Escape') return;
     if (!$('dl').hidden) closeDownload();
+    else if (modalOpen() && !$('iselPanel').hidden) closeInstPanel();
     else if (modalOpen()) closeModal();
     else closeEditTable();
   });
@@ -1025,21 +1127,26 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   // ---------- Initial state from the URL ----------
   loadState();
   renderAll();
-  if (after && step === 'setup') openModal('A-CP1');
-  else if (after && step === 'choose') {
-    openModal('A-CP3');
-    // Bring the first ticked key's card to the top so its Display Name inputs show.
+  const showFirstTicked = () => {
     const first = $('capPane').querySelector('.vrow input[type=checkbox]:checked');
     if (first) { const card = first.closest('.mcard'); $('capPane').scrollTop = card.offsetTop - $('capPane').offsetTop - 12; }
-  }
-  else if (after && step === 'more-modules') {
+  };
+  if (after && step === 'setup') openModal('A-CP1');
+  else if (after && step === 'instance') { openModal('A-CP1'); openInstPanel(); }
+  else if (after && (step === 'choose' || step === 'setup-separate')) {
+    openModal('A-CP3');
+    if (step === 'setup-separate' && M.inst) { Dr().mode = 'separate'; renderTop(); }
+    showFirstTicked();
+  } else if (after && step === 'more-modules') {
     openModal('B-CP1');
     if (rawState === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
   } else if (step === 'edit-table') {
     openEditTable();
-    const row = $('etdList').querySelector('[data-key="moduleOutputs"]') || $('etdList').querySelector('[data-key="configResult"]');
+    const row = $('etdList').querySelector('[data-key="moduleOutputs"]') || $('etdList').querySelector('[data-key^="k:"]') || $('etdList').querySelector('[data-key="configResult"]');
     if (row) $('etdList').scrollTop = Math.max(0, row.offsetTop - $('etdList').offsetTop - 4 * row.offsetHeight);
   }
+  // Separate columns step: start scrolled to the key columns at the right end.
+  if (step === 'separate') $('tscroll').scrollLeft = $('tscroll').scrollWidth;
   if (params.get('toast') === 'saved') toast('Module Outputs saved');
   // ?open=<cycle>:<result|raw>:<image> (1-based) opens the image viewer on load, e.g. ?open=2:result:2
   const o = (params.get('open') || '').split(':'), oc = CYCLES[Number(o[0]) - 1];

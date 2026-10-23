@@ -146,10 +146,10 @@ a.hl{color:#0563C1;text-decoration:underline}
     <span class="add">+</span>
   </div>
   <div class="sb"><span>Ready</span><span class="sp"></span><span class="views"><i class="on"></i><i></i><i></i></span>
-    <span class="zm"><span>−</span><span class="bar"><b></b></span><span>+</span><span>80%</span></span></div>
+    <span class="zm"><span>−</span><span class="bar"><b></b></span><span>+</span><span id="zoomPct">80%</span></span></div>
 </div>
 
-<script src="shared.js?v=20261023d"></script>
+<script src="shared.js?v=20261024a"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -160,13 +160,15 @@ a.hl{color:#0563C1;text-decoration:underline}
 
   // Column keys the "Report (Excel Sheet)" export gets with "Only Report" (downloadRequest.js drops the image columns)
   // and widths from excel.service.ts COL_WIDTHS; Module Outputs is the new column.
-  const COLS = [
+  // Same column: one Module Outputs column. Separate columns: one column per Display Name (value-only cells).
+  const BASE = [
     ['sno', 'S. No.', 8], ['timestamp', 'Timestamp', 24], ['overallResult', 'Overall Result', 16], ['variant', 'Variant', 22],
     ['resultsJson', 'Results JSON', 40], ['cameraPosition', 'Camera Position', 20], ['cameraConfig', 'Camera Configuration', 24],
-    ['configResult', 'Config Result', 16], ['moduleOutputs', 'Module Outputs', 36],
-  ].filter((c) => after || c[0] !== 'moduleOutputs');
+    ['configResult', 'Config Result', 16]];
+  const display = new URLSearchParams(location.search).get('display');
+  let COLS = BASE;
   const PER_RESULT = new Set(['sno', 'timestamp', 'overallResult', 'variant', 'resultsJson']);
-  const LAST_COL = 16; // A..P drawn
+  let LAST_COL = 16; // A..P drawn
   const letter = (n) => String.fromCharCode(64 + n);
 
   $('fileName').textContent = 'Line_1_Instance_Variant_A__Variant_B_20-10-2026_20-10-2026.xlsx';
@@ -177,7 +179,16 @@ a.hl{color:#0563C1;text-decoration:underline}
   });
 
   function build() {
-    const setup = MO.resolveSetup(true).setup;
+    const line1 = MO.resolveState(true).instances.line1, setup = line1.setup;
+    const sep = (display || line1.mode) === 'separate';
+    COLS = BASE.slice();
+    if (after && MO.isSetUp(setup)) {
+      if (sep) MO.keyColumns('line1', setup).forEach((nm) => COLS.push(['k:' + nm, nm, 16]));
+      else COLS.push(['moduleOutputs', 'Module Outputs', 36]);
+    }
+    LAST_COL = Math.max(16, COLS.length + 3);
+    const zoom = sep && after ? 0.7 : 0.8;
+    document.querySelector('.zoom').style.zoom = zoom; $('zoomPct').textContent = Math.round(zoom * 100) + '%';
     const n = COLS.length;
     const cells = {};      // "r,c" -> { html, cls, style, rs, cs }
     const covered = new Set();
@@ -205,7 +216,7 @@ a.hl{color:#0563C1;text-decoration:underline}
       });
     rowH[7] = PT(28);
     // 4. Header row (row 9)
-    COLS.forEach(([, label], i) => put(9, i + 1, label, { style: 'font-weight:700;color:#fff;background:#DC3545;border-color:#BA2D3B', cls: 'mid c' }));
+    COLS.forEach(([, label], i) => put(9, i + 1, esc(label), { style: 'font-weight:700;color:#fff;background:#DC3545;border-color:#BA2D3B', cls: 'mid c' }));
     rowH[9] = PT(24);
     // 5. Data rows, per-result columns merged across the cycle's capture rows
     let r = 10;
@@ -230,6 +241,9 @@ a.hl{color:#0563C1;text-decoration:underline}
             case 'resultsJson': v = '<a class="hl">View JSON</a>'; o.cls += ' c'; break;
             case 'cameraPosition': v = cap.pos; break;
             case 'cameraConfig': v = cap.name; break;
+            default:
+              if (key.startsWith('k:')) v = esc(MO.keyCell(c, cap, setup, key.slice(2)));
+              break;
             case 'moduleOutputs': {
               const ls = MO.outputLines(c, cap, setup).map((l) => `${l.name}: ${l.value}`);
               v = ls.length ? esc(ls.join('\n')) : 'N/A'; o.cls += ' wrap'; lines = Math.max(lines, ls.length || 1); break;
