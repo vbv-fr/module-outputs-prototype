@@ -163,7 +163,7 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 .pager button:disabled{opacity:.3;cursor:default}
 .pager .i{width:18px;height:18px}
 
-/* Modal (mirrors modules/modal + DownloadModal: grey overlay, white rounded-lg card, px-6 py-4 header/footer) */
+/* Modal (mirrors modules/modal + DownloadModal: grey overlay, white rounded card, 24px padded header and footer) */
 .ov{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--overlay)}
 .md{display:flex;flex-direction:column;width:100%;max-width:960px;max-height:calc(100vh - 32px);border-radius:8px;background:var(--surface);color:var(--text);
   box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1)}
@@ -244,6 +244,35 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 .th b{position:absolute;bottom:4px;left:4px;z-index:1;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;line-height:1;color:#fff}
 .th b.p{background:rgba(22,163,74,.9)} .th b.f{background:rgba(220,38,38,.9)}
 
+/* Tooltip (mirrors shared/components/Tooltip: text-xs gray-600 on gray-100, gray-300 border, max-w 200px, top) */
+.tipw{position:relative;display:inline-flex;flex-shrink:0}
+.tip{position:absolute;bottom:100%;left:50%;z-index:50;margin-bottom:8px;transform:translateX(-50%);width:max-content;max-width:200px;
+  padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;background:#f3f4f6;color:#4b5563;font-size:12px;line-height:16px;
+  white-space:normal;overflow-wrap:break-word;text-align:left;opacity:0;pointer-events:none;transition:opacity .2s}
+.tipw:hover .tip,.tip.show{opacity:1}
+.tip.left{bottom:auto;left:auto;right:100%;top:50%;margin:0 8px 0 0;transform:translateY(-50%)}
+.mbtn:disabled{background:#d1d5db;border-color:transparent;color:#6b7280;cursor:not-allowed;pointer-events:none}
+.sclear{position:absolute;right:12px;display:flex;color:var(--muted-2)}
+.sclear:hover{color:var(--label)}
+.sclear .i{position:static;width:16px;height:16px}
+td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);background:var(--surface)}
+
+/* Download popup (mirrors analytics/DownloadModal) */
+.md.sm{max-width:448px}
+.md.sm .md-head{align-items:center}
+.dl-body{display:flex;flex-direction:column;gap:12px;padding:0 24px}
+.ch{border:1px solid var(--border);border-radius:8px;padding:12px 16px;transition:border-color .15s}
+.ch.on{border-color:var(--primary)}
+.ch > label{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;line-height:20px;font-weight:500;color:var(--ink)}
+.ch input{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.ch-sub{display:flex;flex-direction:column;gap:8px;margin:12px 0 0 28px}
+.ch-sub label{display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;color:var(--text-2);cursor:pointer}
+.ch-sub label.dis{cursor:not-allowed;opacity:.6}
+.ch-sub input{border-radius:0}
+.amber{border:1px solid #fde68a;border-radius:6px;background:#fffbeb;color:#92400e;padding:8px 12px;font-size:12px;line-height:16px}
+.btn:disabled{background:#d1d5db;color:#6b7280;border-color:transparent;cursor:not-allowed}
+.embed .proto,.embed .seg{display:none}
+
 @media (max-width:767px){
   .side{display:none}
   .main{margin-left:0;height:auto;min-height:100vh}
@@ -268,6 +297,7 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 </style>
 </head>
 <body>
+<script>try { if (window.self !== window.top) document.documentElement.classList.add('embed'); } catch (e) { document.documentElement.classList.add('embed'); }</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
@@ -316,7 +346,8 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       </div>
       <div class="search">
         <svg class="i"><use href="#i-search"/></svg>
-        <input type="text" placeholder="Search" aria-label="Search">
+        <input type="text" id="search" placeholder="Search" aria-label="Search" autocomplete="off">
+        <button type="button" class="sclear" id="sclear" aria-label="Clear search" hidden><svg class="i"><use href="#i-x"/></svg></button>
       </div>
     </div>
   </header>
@@ -328,9 +359,13 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       <button type="button" class="fbtn">Variant <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
       <button type="button" class="fbtn" style="width:100px">Outcome <svg class="i"><use href="#i-down"/></svg><span class="badge">2</span></button>
     </div>
-    <button type="button" class="mbtn" id="moBtn"><svg class="i"><use href="#i-list"/></svg>Module Outputs</button>
-    <div class="etw" id="etw">
-      <button type="button" class="abtn" id="etBtn" title="Edit Table"><svg class="i"><use href="#i-edit"/></svg></button>
+    <div class="tipw" id="moWrap">
+      <button type="button" class="mbtn" id="moBtn"><svg class="i"><use href="#i-list"/></svg>Module Outputs</button>
+      <div class="tip left" id="moTip" role="tooltip" hidden>Needs Update permission on Analytics &amp; Reports</div>
+    </div>
+    <div class="etw tipw" id="etw">
+      <button type="button" class="abtn" id="etBtn" aria-label="Edit Table"><svg class="i"><use href="#i-edit"/></svg></button>
+      <div class="tip">Edit Table</div>
       <div class="etd" id="etd" hidden>
         <div class="etd-h">Customize Columns</div>
         <div class="etd-list" id="etdList"></div>
@@ -340,18 +375,18 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
         </div>
       </div>
     </div>
-    <button type="button" class="abtn" title="Download"><svg class="i"><use href="#i-dl"/></svg></button>
+    <div class="tipw"><button type="button" class="abtn" id="dlBtn" aria-label="Download"><svg class="i"><use href="#i-dl"/></svg></button><div class="tip">Download</div></div>
     <div class="fright">
-      <button type="button" class="abtn" title="Add Filter"><svg class="i"><use href="#i-filter"/></svg></button>
-      <button type="button" class="abtn" title="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+      <div class="tipw"><button type="button" class="abtn" aria-label="Add Filter"><svg class="i"><use href="#i-filter"/></svg></button><div class="tip">Add Filter</div></div>
+      <div class="tipw"><button type="button" class="abtn" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button><div class="tip">Refresh</div></div>
     </div>
   </div>
 
   <div class="sum">
-    <div class="s-total"><span>Total</span><b>3</b></div>
-    <div class="s-pass"><span>Pass</span><b>2</b></div>
-    <div class="s-fail"><span>Fail</span><b>1</b></div>
-    <div class="s-def"><span>Defect %</span><b>33.333%</b></div>
+    <div class="s-total"><span>Total</span><b id="sTotal">3</b></div>
+    <div class="s-pass"><span>Pass</span><b id="sPass">2</b></div>
+    <div class="s-fail"><span>Fail</span><b id="sFail">1</b></div>
+    <div class="s-def"><span>Defect %</span><b id="sDef">33.333%</b></div>
     <div class="s-rj"><span>Reverse Judgement</span><b>0</b></div>
   </div>
 
@@ -364,7 +399,7 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       </table>
     </div>
     <div class="pager">
-      <span>1–3 of 3</span>
+      <span id="pagerText">1–3 of 3</span>
       <button type="button" disabled aria-label="Previous page"><svg class="i"><use href="#i-left"/></svg></button>
       <button type="button" disabled aria-label="Next page"><svg class="i"><use href="#i-right"/></svg></button>
     </div>
@@ -375,7 +410,7 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 
 <!-- Module Outputs setup -->
 <div class="ov" id="mo" hidden>
-  <div class="md" id="moCard" role="dialog" aria-modal="true" aria-labelledby="moTitle">
+  <div class="md" role="dialog" aria-modal="true" aria-labelledby="moTitle">
     <div class="md-head">
       <div>
         <h3 id="moTitle">Module Outputs</h3>
@@ -390,6 +425,38 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
     <div class="md-foot">
       <button type="button" class="btn b" id="moCancel">Cancel</button>
       <button type="button" class="btn p" id="moSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Download (mirrors DownloadModal.jsx) -->
+<div class="ov" id="dl" hidden>
+  <div class="md sm" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <div class="md-head">
+      <h3 id="dlTitle">Download</h3>
+      <button type="button" class="md-x" id="dlClose" aria-label="Close"><svg viewBox="0 0 32 32"><path d="M24 8L8 24M8 8L24 24"/></svg></button>
+    </div>
+    <div class="dl-body" id="dlBody">
+      <div class="ch on" id="chExcel">
+        <label><input type="radio" name="dlc" value="excel" checked>Report (Excel Sheet)</label>
+        <div class="ch-sub" id="subExcel">
+          <label class="dis"><input type="checkbox" checked disabled>Only Report</label>
+          <label><input type="checkbox" data-img="exA">Add Analysed Images</label>
+          <label><input type="checkbox" data-img="exR">Add Raw Images</label>
+        </div>
+      </div>
+      <div class="ch" id="chImages">
+        <label><input type="radio" name="dlc" value="images">Images Only</label>
+        <div class="ch-sub" id="subImages" hidden>
+          <label><input type="checkbox" data-img="imA">Analysed Images</label>
+          <label><input type="checkbox" data-img="imR">Raw Images</label>
+        </div>
+      </div>
+      <p class="amber" id="dlNote" hidden>Please check if Image Saving is ON from Image Saving Configurations before downloading</p>
+    </div>
+    <div class="md-foot">
+      <button type="button" class="btn b" id="dlCancel">Cancel</button>
+      <button type="button" class="btn p" id="dlGo">Download</button>
     </div>
   </div>
 </div>
@@ -421,10 +488,12 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
   </div>
 </div>
 
+<script src="shared.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const { EMBED, CAPTURES, CAP, valuesOf, clone, ticked, isSetUp, CYCLES, outputLines } = MO;
 
   // ---------- Placeholder camera frames (inline SVG, grey metal part on dark background) ----------
   const STROKE = 'stroke="#c3c7cc" stroke-width="4"';
@@ -494,6 +563,10 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
     if (sa) s += saLayer(sa);
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s + '</svg>');
   }
+  const frameData = (cap) => (cap.kind === 'front'
+    ? { screws: Number(cap.out.screw), slot2: cap.out.slot2 }
+    : { serial: cap.out.text, code: cap.out.code, scratch: Number(cap.out.scratch), dent: Number(cap.out.dent) });
+
   // Search areas per capture, with the boxes the modules draw inside them.
   function searchAreas(cap) {
     const o = cap.out;
@@ -516,98 +589,33 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       { name: 'Surface Area', box: { x1: 200, y1: 210, x2: 1080, y2: 750 }, draws: marks },
     ];
   }
-  const frameData = (cap) => (cap.kind === 'front'
-    ? { screws: Number(cap.out.screw), slot2: cap.out.slot2 }
-    : { serial: cap.out.text, code: cap.out.code, scratch: Number(cap.out.scratch), dent: Number(cap.out.dent) });
-
-  // ---------- Module Outputs: what each capture's modules can report ----------
-  // Every pair a module offers; `tick` = ticked once set up.
-  const FRONT_MODULES = [
-    { name: 'Fastener Check', type: 'Object Detection & Classification', values: [
-      { id: 'screw', auto: 'Screw count', ex: '4', tick: true }, { id: 'screwRes', auto: 'Screw result', ex: 'OK' },
-      { id: 'washer', auto: 'Washer count', ex: '2', tick: true }, { id: 'washerRes', auto: 'Washer result', ex: 'OK' }] },
-    { name: 'Slot Check', type: 'Image Classification', values: [
-      { id: 'slot1', auto: 'Slot 1 class', ex: 'Good', tick: true }, { id: 'slot1Conf', auto: 'Slot 1 confidence', ex: '0.98' },
-      { id: 'slot1Res', auto: 'Slot 1 result', ex: 'OK' }, { id: 'slot2', auto: 'Slot 2 class', ex: 'Empty', tick: true },
-      { id: 'slot2Conf', auto: 'Slot 2 confidence', ex: '0.95' }, { id: 'slot2Res', auto: 'Slot 2 result', ex: 'OK' }] },
-  ];
-  const LABEL_MODULES = [
-    { name: 'Serial Reader', type: 'OCR', values: [
-      { id: 'text', auto: 'Detected text', ex: 'SN-48213', tick: true }, { id: 'serialText', auto: 'Serial text', ex: 'SN-48213' },
-      { id: 'serialRes', auto: 'Serial result', ex: 'Matched' }] },
-    { name: 'QR Reader', type: 'Code Reader', values: [
-      { id: 'code', auto: 'Detected code', ex: 'FRK2026A0042', tick: true }, { id: 'codeRes', auto: 'Code result', ex: 'OK' }] },
-    { name: 'Surface Check', type: 'Segmentation', values: [
-      { id: 'scratch', auto: 'Scratch regions', ex: '2', tick: true }, { id: 'dent', auto: 'Dent regions', ex: '0', tick: true },
-      { id: 'classes', auto: 'Detected classes', ex: 'Scratch' }, { id: 'segRes', auto: 'Segmentation result', ex: 'OK' }] },
-  ];
-  const B_FRONT_MODULES = [
-    { name: 'Seal Check', type: 'Bead Inspection', values: [
-      { id: 'bead', auto: 'Bead result', ex: 'NG', tick: true }, { id: 'calPct', auto: 'Caliper pass %', ex: '76.5%', tick: true },
-      { id: 'calBad', auto: 'Incorrect calipers', ex: '47 of 200', tick: true }, { id: 'sealRes', auto: 'Door seal result', ex: 'NG' },
-      { id: 'sealGaps', auto: 'Door seal gaps', ex: '2 (largest 80 px)' }, { id: 'sealWidth', auto: 'Door seal width fails', ex: '0' }] },
-    { name: 'Cap Colour', type: 'Colour Detection', values: [
-      { id: 'red', auto: 'Red coverage', ex: '42%', tick: true }, { id: 'redRes', auto: 'Red result', ex: 'OK' }] },
-    { name: 'Hole Fit', type: 'Shape Extractor', values: [
-      { id: 'radius', auto: 'Hole radius', ex: '62.7 px' }, { id: 'fit', auto: 'Hole fit', ex: 'OK' }] },
-    { name: 'Hole Diameter', type: 'Dimensions', values: [
-      { id: 'dia', auto: 'Hole Diameter', ex: '12.4 mm', tick: true }, { id: 'diaExp', auto: 'Hole Diameter expected', ex: '12–13 mm' },
-      { id: 'diaRes', auto: 'Hole Diameter result', ex: 'OK' }] },
-    { name: 'Label Tilt', type: 'Orientation & Tilt Check', values: [
-      { id: 'tilt', auto: 'Tilt', ex: '3.2° clockwise', tick: true }, { id: 'tiltAllowed', auto: 'Tilt allowed', ex: '0–5°' },
-      { id: 'tiltRes', auto: 'Tilt result', ex: 'OK' }] },
-  ];
-  const CAPTURES = [
-    { id: 'A-CP1', variant: 'Variant A', pos: 'CP1', name: 'Front View', modules: FRONT_MODULES },
-    { id: 'A-CP3', variant: 'Variant A', pos: 'CP3', name: 'Label Side', modules: LABEL_MODULES },
-    { id: 'B-CP1', variant: 'Variant B', pos: 'CP1', name: 'Front View', modules: B_FRONT_MODULES },
-  ];
-  const CAP = Object.fromEntries(CAPTURES.map((c) => [c.id, c]));
-  const valuesOf = (cap) => cap.modules.flatMap((m) => m.values);
-  const clone = (o) => JSON.parse(JSON.stringify(o));
-  function emptySetup() {
-    const s = {};
-    CAPTURES.forEach((cap) => { s[cap.id] = {}; valuesOf(cap).forEach((v) => { s[cap.id][v.id] = { on: false, name: v.auto }; }); });
-    return s;
-  }
-  function fullSetup(capIds) {
-    const s = emptySetup();
-    (capIds || CAPTURES.map((c) => c.id)).forEach((id) => valuesOf(CAP[id]).forEach((v) => { s[id][v.id].on = !!v.tick; }));
-    s['A-CP3'].text.name = 'Serial No.';
-    return s;
-  }
-  const ticked = (setup, capId) => Object.values(setup[capId] || {}).filter((x) => x.on).length;
-  const isSetUp = (setup) => CAPTURES.some((c) => ticked(setup, c.id) > 0);
-
-  // ---------- Sample cycles (Line 1 Instance) ----------
-  const cp1 = (result, out) => ({ pos: 'CP1', name: 'Front View', kind: 'front', result, out });
-  const cp3 = (result, out) => ({ pos: 'CP3', name: 'Label Side', kind: 'label', result, out });
-  const front = (screw, slot2, conf2) => ({ screw, screwRes: screw === '4' ? 'OK' : 'NG', washer: '2', washerRes: 'OK',
-    slot1: 'Good', slot1Conf: '0.98', slot1Res: 'OK', slot2, slot2Conf: conf2, slot2Res: slot2 === 'Bad' ? 'NG' : 'OK' });
-  const label = (serial, code, scratch, dent) => ({ text: serial, serialText: serial, serialRes: 'Matched', code,
-    codeRes: code === '—' ? 'NG' : 'OK', scratch, dent,
-    classes: [scratch !== '0' && 'Scratch', dent !== '0' && 'Dent'].filter(Boolean).join(', ') || '—', segRes: 'OK' });
-  const CYCLES = [
-    { ts: '20/10/2026, 02:14:07 PM', variant: 'Variant A', result: true, caps: [
-      cp1(true, front('4', 'Empty', '0.95')), cp3(true, label('SN-48213', 'FRK2026A0042', '2', '0'))] },
-    { ts: '20/10/2026, 02:14:01 PM', variant: 'Variant A', result: false, caps: [
-      cp1(false, front('3', 'Bad', '0.91')), cp3(false, label('SN-48212', '—', '3', '1'))] },
-    { ts: '20/10/2026, 02:13:55 PM', variant: 'Variant A', result: true, caps: [
-      cp1(true, front('4', 'Empty', '0.96')), cp3(true, label('SN-48211', 'FRK2026A0040', '1', '0'))] },
-  ];
-  const capIdOf = (c, cap) => c.variant.slice(-1) + '-' + cap.pos;
   const resultImages = (c) => c.caps.flatMap((cap) => searchAreas(cap).map((sa) => ({
     captureName: cap.name, name: sa.name, result: sa.pass !== false,
     src: frame(cap.kind, frameData(cap), sa.draws, { ...sa.box, name: sa.name, pass: sa.pass }) })));
   const rawImages = (c) => c.caps.map((cap) => ({ captureName: cap.name, name: 'Raw Image', src: frame(cap.kind, frameData(cap)) }));
 
-  // ---------- State ----------
+  // ---------- URL: mode + step (old PRD links keep working) ----------
   const params = new URLSearchParams(location.search);
-  let mode = params.get('mode') === 'today' ? 'today' : 'after';
-  const state = params.get('state') || '';
-  let saved = state.startsWith('setup') ? emptySetup() : fullSetup();
+  const mode = MO.modeFromUrl();
+  const rawState = params.get('state') || '';
+  const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
+  const STEPS = ['table', 'setup', 'choose', 'more-modules', 'column', 'edit-table', 'search', 'no-permission'];
+  let step = ALIAS[rawState] || rawState;
+  if (!STEPS.includes(step)) step = mode === 'after' ? 'column' : 'table';
+  const after = mode === 'after';
+  const noPermission = after && step === 'no-permission';
 
-  // ---------- Columns (mirrors columns.js; Module Outputs sits after Config Result once set up) ----------
+  // ---------- Shared setup (localStorage via shared.js) ----------
+  const S = { saved: false, setup: null };
+  function loadState() {
+    const firstTime = step === 'table' || step === 'setup';
+    const r = MO.resolveSetup(!firstTime);
+    S.setup = r.setup;
+    S.saved = r.stored || (!firstTime && step !== 'choose' && step !== 'more-modules');
+  }
+  const moAvailable = () => after && S.saved && isSetUp(S.setup);
+
+  // ---------- Columns (mirrors columns.js; Module Outputs after Config Result once set up) ----------
   const BASE_COLUMNS = [
     { key: 'sno', label: 'S. No.', def: true }, { key: 'timestamp', label: 'Timestamp', def: true },
     { key: 'overallResult', label: 'Overall Result', def: true }, { key: 'variant', label: 'Variant', def: true },
@@ -622,24 +630,44 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
     resultsJson: 108, cameraPosition: 100, cameraConfig: 128, configResult: 104, moduleOutputs: 222, className: 120, classCount: 110,
     cycleStart: 120, cycleComplete: 120, comment: 120 };
   const PER_RESULT = new Set(['sno', 'timestamp', 'overallResult', 'variant', 'userFeedback', 'resultImages', 'rawImages', 'resultsJson', 'cycleStart', 'cycleComplete', 'comment']);
-  const allColumns = () => BASE_COLUMNS.filter((c) => !c.isNew || (mode === 'after' && isSetUp(saved)));
+  const allColumns = () => BASE_COLUMNS.filter((c) => !c.isNew || moAvailable());
   let visible = ['sno', 'timestamp', 'overallResult', 'variant', 'resultImages', 'rawImages', 'resultsJson', 'cameraPosition', 'cameraConfig', 'configResult', 'moduleOutputs'];
   const shownColumns = () => allColumns().filter((c) => visible.includes(c.key));
 
+  const className = (cap) => (cap.kind === 'front' ? 'screw, washer' : 'scratch, dent');
+  const classCount = (cap) => (cap.kind === 'front' ? `${cap.out.screw}, ${cap.out.washer}` : `${cap.out.scratch}, ${cap.out.dent}`);
+  const moText = (c, cap) => outputLines(c, cap, S.setup).map((l) => `${l.name}: ${l.value}`);
+
+  // ---------- Search (mirrors analytics/index.jsx filteredReportData; now also reads Module Outputs) ----------
+  let term = step === 'search' ? (params.get('q') != null ? params.get('q') : 'SN-48212') : '';
+  function filtered() {
+    const t = term.trim().toLowerCase(), vis = new Set(shownColumns().map((c) => c.key));
+    const all = CYCLES.map((c, ci) => ({ c, ci, rows: c.caps }));
+    if (!t) return all;
+    return all.map((it) => {
+      const c = it.c, has = (s) => String(s).toLowerCase().includes(t);
+      const outer = (vis.has('overallResult') && t.length >= 3 && has(c.result ? 'pass' : 'fail')) || (vis.has('variant') && has(c.variant)) ||
+        (vis.has('cycleStart') && has(c.ts)) || (vis.has('cycleComplete') && has(c.ts));
+      if (outer) return it;
+      const rows = c.caps.filter((cap) => (vis.has('timestamp') && has(c.ts)) || (vis.has('cameraPosition') && has(cap.pos)) ||
+        (vis.has('cameraConfig') && has(cap.name)) || (vis.has('configResult') && t.length >= 3 && has(cap.result ? 'pass' : 'fail')) ||
+        (vis.has('className') && has(className(cap))) || (vis.has('classCount') && has(classCount(cap))) ||
+        (vis.has('moduleOutputs') && moText(c, cap).some(has)));
+      return rows.length ? { ...it, rows } : null;
+    }).filter(Boolean);
+  }
+
+  // ---------- Table (mirrors ResultTable.jsx: per-result cells rowSpan across capture sub-rows) ----------
   const resultText = (ok) => `<span class="res ${ok ? 'p' : 'f'}">${ok ? 'Pass' : 'Fail'}</span>`;
-  function moduleOutputs(c, cap) {
-    const capId = capIdOf(c, cap), conf = saved[capId];
-    if (!conf || !CAP[capId]) return 'N/A';
-    const lines = valuesOf(CAP[capId]).filter((v) => conf[v.id].on && cap.out[v.id] != null);
+  function moduleOutputsCell(c, cap) {
+    const lines = outputLines(c, cap, S.setup);
     if (!lines.length) return 'N/A';
-    return '<div class="mo">' + lines.map((v) => `<div><span class="k">${esc(conf[v.id].name)}:</span> ${esc(cap.out[v.id])}</div>`).join('') + '</div>';
+    return '<div class="mo">' + lines.map((l) => `<div><span class="k">${esc(l.name)}:</span> ${esc(l.value)}</div>`).join('') + '</div>';
   }
   function cell(key, c, ci, cap, sno) {
     switch (key) {
       case 'sno': return sno;
-      case 'timestamp': return c.ts;
-      case 'cycleStart': return c.ts;
-      case 'cycleComplete': return c.ts;
+      case 'timestamp': case 'cycleStart': case 'cycleComplete': return c.ts;
       case 'overallResult': return resultText(c.result);
       case 'variant': return c.variant;
       case 'userFeedback': return '<button type="button" class="mdbtn">Mark</button>';
@@ -650,32 +678,43 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       case 'cameraPosition': return cap.pos;
       case 'cameraConfig': return cap.name;
       case 'configResult': return resultText(cap.result);
-      case 'moduleOutputs': return moduleOutputs(c, cap);
-      case 'className': return cap.kind === 'front' ? 'screw, washer' : 'scratch, dent';
-      case 'classCount': return cap.kind === 'front' ? `${cap.out.screw}, ${cap.out.washer}` : `${cap.out.scratch}, ${cap.out.dent}`;
+      case 'moduleOutputs': return moduleOutputsCell(c, cap);
+      case 'className': return className(cap);
+      case 'classCount': return classCount(cap);
       default: return '';
     }
   }
   const td = (html, span, cls) => `<td${cls ? ` class="${cls}"` : ''}${span > 1 ? ` rowspan="${span}"` : ''}><div>${html}</div></td>`;
 
   function renderTable() {
-    const cols = shownColumns();
-    const total = cols.reduce((n, c) => n + WIDTH[c.key], 0);
+    const cols = shownColumns(), total = cols.reduce((n, c) => n + WIDTH[c.key], 0), data = filtered();
     $('cols').innerHTML = cols.map((c) => `<col style="width:${((WIDTH[c.key] / total) * 100).toFixed(3)}%">`).join('');
     $('thead').innerHTML = cols.map((c) => `<th scope="col">${c.label}</th>`).join('');
     let html = '';
-    CYCLES.forEach((c, ci) => {
-      c.caps.forEach((cap, i) => {
+    data.forEach((it, n) => {
+      const sno = n + 1;
+      it.rows.forEach((cap, i) => {
         html += '<tr>' + cols.map(({ key }) => (PER_RESULT.has(key)
-          ? (i === 0 ? td(cell(key, c, ci, cap, ci + 1), c.caps.length) : '')
-          : td(cell(key, c, ci, cap, ci + 1), 1, key === 'moduleOutputs' ? 'mo-td' : ''))).join('') + '</tr>';
+          ? (i === 0 ? td(cell(key, it.c, it.ci, cap, sno), it.rows.length) : '')
+          : td(cell(key, it.c, it.ci, cap, sno), 1, key === 'moduleOutputs' ? 'mo-td' : ''))).join('') + '</tr>';
       });
     });
+    if (!data.length) html = `<tr><td class="empty" colspan="${cols.length}">No results found.</td></tr>`;
     $('tbody').innerHTML = html;
+    // Summary bar + pager follow the search, as in the app
+    const pass = data.filter((it) => it.c.result).length, fail = data.length - pass;
+    $('sTotal').textContent = data.length; $('sPass').textContent = pass; $('sFail').textContent = fail;
+    $('sDef').textContent = (data.length ? ((fail / data.length) * 100).toFixed(3) : '0.000') + '%';
+    $('pagerText').textContent = data.length ? `1–${data.length} of ${data.length}` : '0 results';
   }
   function renderChrome() {
     document.querySelectorAll('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    $('moBtn').hidden = mode !== 'after';
+    $('moWrap').hidden = !after;
+    $('moBtn').disabled = noPermission;
+    $('moTip').hidden = !noPermission;
+    $('moTip').classList.toggle('show', noPermission);
+    $('search').value = term;
+    $('sclear').hidden = !term;
   }
   function renderAll() { renderChrome(); renderTable(); if (!$('etd').hidden) renderEditTable(); }
 
@@ -701,11 +740,23 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
   }
   function openEditTable() { renderEditTable(); $('etd').hidden = false; $('clickaway').hidden = false; }
   function closeEditTable() { $('etd').hidden = true; $('clickaway').hidden = true; }
-  $('etBtn').addEventListener('click', () => ($('etd').hidden ? openEditTable() : closeEditTable()));
+  $('etBtn').addEventListener('click', () => {
+    if (step !== 'edit-table' && MO.postNav('edit-table')) return;
+    $('etd').hidden ? openEditTable() : closeEditTable();
+  });
   $('etdList').addEventListener('click', (e) => { const r = e.target.closest('[data-key]'); if (r) toggleColumn(r.dataset.key); });
   $('etReset').addEventListener('click', () => { visible = BASE_COLUMNS.filter((c) => c.def).map((c) => c.key); renderEditTable(); renderTable(); });
   $('etDone').addEventListener('click', closeEditTable);
   $('clickaway').addEventListener('click', closeEditTable);
+
+  // ---------- Search box ----------
+  $('search').addEventListener('input', (e) => {
+    term = e.target.value;
+    $('sclear').hidden = !term;
+    renderTable();
+    if (step !== 'search' && term) { MO.postNav('search', { inPlace: true }); step = 'search'; }
+  });
+  $('sclear').addEventListener('click', () => { term = ''; $('search').value = ''; $('sclear').hidden = true; renderTable(); });
 
   // ---------- Module Outputs setup modal ----------
   const M = { sel: 'A-CP1', draft: null };
@@ -722,35 +773,43 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
   function renderPane() {
     const cap = CAP[M.sel], conf = M.draft[M.sel];
     $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
-      cap.modules.map((m) => `<section class="mcard"><div class="mcard-h"><b>${m.name}</b><span>${m.type}</span></div>` +
+      cap.modules.map((m) => `<section class="mcard"><div class="mcard-h"><b>${esc(m.name)}</b><span>${esc(m.type)}</span></div>` +
         m.values.map((v) => {
-          const x = conf[v.id], id = `v-${M.sel}-${v.id}`;
+          const x = conf[v.id];
           return `<div class="vrow${x.on ? '' : ' off'}" data-val="${v.id}">` +
-            `<input type="checkbox" id="${id}" ${x.on ? 'checked' : ''} aria-label="Show ${esc(v.auto)}">` +
+            `<input type="checkbox" ${x.on ? 'checked' : ''} aria-label="Show ${esc(v.auto)}">` +
             `<input type="text" class="vname" value="${esc(x.name)}" aria-label="Name for ${esc(v.auto)}" maxlength="40">` +
             `<span class="vex">e.g. ${esc(v.ex)}</span></div>`;
         }).join('') + '</section>').join('');
+    $('capPane').scrollTop = 0;
   }
-  function openModal(sel, draft) {
+  function openModal(sel) {
     closeEditTable();
     M.sel = sel || 'A-CP1';
-    M.draft = draft || clone(saved);
+    M.draft = clone(S.setup);
     renderCapList(); renderPane();
     $('mo').hidden = false;
   }
-  function closeModal() { $('mo').hidden = true; }
+  const modalOpen = () => !$('mo').hidden;
+  function closeModal() {
+    $('mo').hidden = true;
+    MO.postNav(S.saved ? 'column' : 'reports');
+  }
   function saveModal() {
-    const wasSetUp = isSetUp(saved);
-    CAPTURES.forEach((cap) => valuesOf(cap).forEach((v) => {
-      const x = M.draft[cap.id][v.id]; x.name = x.name.trim() || v.auto;
-    }));
-    saved = clone(M.draft);
-    if (isSetUp(saved) && !wasSetUp && !visible.includes('moduleOutputs')) visible = BASE_COLUMNS.map((c) => c.key).filter((k) => k === 'moduleOutputs' || visible.includes(k));
-    closeModal();
+    CAPTURES.forEach((cap) => valuesOf(cap).forEach((v) => { const x = M.draft[cap.id][v.id]; x.name = x.name.trim() || v.auto; }));
+    S.setup = clone(M.draft); S.saved = true;
+    MO.writeStore({ saved: true, setup: S.setup });
+    $('mo').hidden = true;
+    if (MO.postNav('column', { toast: 'saved' })) return;
+    if (!visible.includes('moduleOutputs')) visible = BASE_COLUMNS.map((c) => c.key).filter((k) => k === 'moduleOutputs' || visible.includes(k));
     renderAll();
     toast('Module Outputs saved');
   }
-  $('moBtn').addEventListener('click', () => openModal('A-CP1'));
+  $('moBtn').addEventListener('click', () => {
+    if (noPermission) return;
+    if (step !== 'setup' && MO.postNav('setup')) return;
+    openModal('A-CP1');
+  });
   $('moClose').addEventListener('click', closeModal);
   $('moCancel').addEventListener('click', closeModal);
   $('moSave').addEventListener('click', saveModal);
@@ -772,20 +831,46 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
     M.draft[M.sel][e.target.closest('[data-val]').dataset.val].name = e.target.value;
   });
 
+  // ---------- Download popup (mirrors DownloadModal.jsx) ----------
+  const D = { choice: 'excel', exA: false, exR: false, imA: false, imR: false };
+  function renderDownload() {
+    const imgs = D.choice === 'images';
+    $('chExcel').classList.toggle('on', !imgs); $('chImages').classList.toggle('on', imgs);
+    $('subExcel').hidden = imgs; $('subImages').hidden = !imgs;
+    $('dlNote').hidden = imgs || !(D.exA || D.exR);
+    $('dlGo').disabled = imgs && !(D.imA || D.imR);
+    document.querySelectorAll('#dlBody [data-img]').forEach((x) => { x.checked = D[x.dataset.img]; });
+    document.querySelectorAll('#dlBody input[name=dlc]').forEach((x) => { x.checked = x.value === D.choice; });
+  }
+  function openDownload() { Object.assign(D, { choice: 'excel', exA: false, exR: false, imA: false, imR: false }); renderDownload(); $('dl').hidden = false; }
+  function closeDownload() { $('dl').hidden = true; }
+  $('dlBtn').addEventListener('click', openDownload);
+  $('dlClose').addEventListener('click', closeDownload);
+  $('dlCancel').addEventListener('click', closeDownload);
+  $('dl').addEventListener('mousedown', (e) => { if (e.target === $('dl')) closeDownload(); });
+  $('dlBody').addEventListener('change', (e) => {
+    if (e.target.name === 'dlc') D.choice = e.target.value;
+    else if (e.target.dataset.img) D[e.target.dataset.img] = e.target.checked;
+    renderDownload();
+  });
+  $('dlGo').addEventListener('click', () => {
+    const excel = D.choice === 'excel';
+    closeDownload();
+    if (!excel) return;
+    if (!MO.postNav('excel')) location.href = 'excel.html?mode=' + mode;
+  });
+
   let toastTimer = 0;
   function toast(text) {
     $('toastText').textContent = text; $('toast').hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 2500);
   }
 
-  // ---------- Today | After change switch ----------
+  // ---------- Today | After change switch (only when opened on its own) ----------
   $('seg').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-mode]');
     if (!b || b.dataset.mode === mode) return;
-    mode = b.dataset.mode;
-    try { history.replaceState(null, '', '?mode=' + mode); } catch (err) { /* file:// may refuse */ }
-    closeModal(); closeEditTable();
-    renderAll();
+    location.replace('?mode=' + b.dataset.mode + (rawState ? '&state=' + encodeURIComponent(rawState) : ''));
   });
 
   // ---------- Image viewer (mirrors ImageViewer.jsx) ----------
@@ -860,22 +945,33 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
       else if (e.key === '0') setZoom(1);
       return;
     }
-    if (e.key === 'Escape') { if (!$('mo').hidden) closeModal(); else closeEditTable(); }
+    if (e.key !== 'Escape') return;
+    if (!$('dl').hidden) closeDownload();
+    else if (modalOpen()) closeModal();
+    else closeEditTable();
+  });
+
+  // Another tab saved or cleared the setup: show it (an open modal keeps its unsaved edits).
+  window.addEventListener('storage', (e) => {
+    if (e.key !== null && e.key !== MO.KEY) return;
+    loadState(); renderAll();
+    if (modalOpen()) renderCapList();
   });
 
   // ---------- Initial state from the URL ----------
+  loadState();
   renderAll();
-  if (mode === 'after' && state === 'setup-empty') openModal('A-CP1', emptySetup());
-  else if (mode === 'after' && state === 'setup') openModal('A-CP3', fullSetup(['A-CP1', 'A-CP3']));
-  else if (mode === 'after' && state.startsWith('setup-more')) {
-    openModal('B-CP1', fullSetup());
-    if (state === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
-  }
-  else if (state === 'edit-table') {
+  if (after && step === 'setup') openModal('A-CP1');
+  else if (after && step === 'choose') openModal('A-CP3');
+  else if (after && step === 'more-modules') {
+    openModal('B-CP1');
+    if (rawState === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
+  } else if (step === 'edit-table') {
     openEditTable();
     const row = $('etdList').querySelector('[data-key="moduleOutputs"]') || $('etdList').querySelector('[data-key="configResult"]');
     if (row) $('etdList').scrollTop = Math.max(0, row.offsetTop - $('etdList').offsetTop - 4 * row.offsetHeight);
   }
+  if (params.get('toast') === 'saved') toast('Module Outputs saved');
   // ?open=<cycle>:<result|raw>:<image> (1-based) opens the image viewer on load, e.g. ?open=2:result:2
   const o = (params.get('open') || '').split(':'), oc = CYCLES[Number(o[0]) - 1];
   if (oc) { openViewer(o[1] === 'raw' ? rawImages(oc) : resultImages(oc)); const n = Number(o[2]) - 1; if (n > 0 && n < V.images.length) { V.i = n; paint(false); } }

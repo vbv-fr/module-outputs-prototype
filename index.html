@@ -5,46 +5,147 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Module Outputs in Reports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --bg:#f6f6f6; --card:#fff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, sans-serif; }
-  header { padding:32px 24px 8px; max-width:1200px; margin:0 auto; }
-  h1 { margin:0 0 6px; font-size:28px; font-weight:600; }
-  .sub { color:var(--muted); font-size:15px; }
-  h2 { max-width:1200px; margin:28px auto 12px; padding:0 24px; font-size:15px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .grid { max-width:1200px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; }
-  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; text-decoration:none; color:inherit; transition:box-shadow .15s, border-color .15s; }
-  a.card:hover { border-color:var(--brand); box-shadow:0 4px 18px rgba(0,0,0,.08); }
-  a.card img { display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top left; border-bottom:1px solid var(--line); }
-  .body { padding:12px 14px 14px; }
-  .t { font-weight:600; font-size:16px; }
-  .us { color:var(--brand); font-size:13px; font-weight:500; margin-top:2px; }
-  footer { max-width:1200px; margin:32px auto; padding:0 24px; color:var(--muted); font-size:13px; }
+  :root { --ink:#1e1c1c; --muted:#6b6f72; --line:#e6e6e6; --brand:#ff4301; --brand-soft:#fff3ee; --bg:#fff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  [hidden] { display:none !important; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:Outfit, system-ui, -apple-system, 'Segoe UI', sans-serif; overflow:hidden; }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+  .bar { display:flex; align-items:center; gap:16px; height:52px; padding:0 16px; border-bottom:1px solid var(--line); background:#fff; }
+  .title { flex-shrink:0; font-size:15px; font-weight:600; white-space:nowrap; }
+  .steps { flex:1; min-width:0; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; padding:4px 0; }
+  .steps::-webkit-scrollbar { display:none; }
+  .grp { flex-shrink:0; margin-right:4px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+  .chip { flex-shrink:0; display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 9px; border:1px solid var(--line); border-radius:999px;
+    background:#fff; color:var(--muted); font-size:12px; font-weight:500; white-space:nowrap; }
+  .chip .n { font-weight:600; }
+  .chip .l { display:none; }
+  .chip:hover { border-color:var(--brand); color:var(--ink); }
+  .chip.on { background:var(--brand); border-color:var(--brand); color:#fff; padding:0 12px; }
+  .chip.on .l { display:inline; }
+  @media (min-width:1800px) { .chip .l { display:inline; } .chip { padding:0 11px; } }
+  .right { flex-shrink:0; display:flex; align-items:center; gap:10px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:999px; padding:2px; }
+  .seg button { font-size:12px; font-weight:600; padding:4px 12px; border-radius:999px; color:var(--muted); white-space:nowrap; }
+  .seg button[aria-pressed="true"] { background:var(--ink); color:#fff; }
+  .nbtn { height:32px; padding:0 14px; border-radius:6px; font-size:13px; font-weight:600; white-space:nowrap; }
+  .nbtn.b { border:1px solid var(--brand); color:var(--brand); }
+  .nbtn.p { background:var(--brand); color:#fff; border:1px solid var(--brand); }
+  .nbtn:disabled { background:#f3f4f6; border-color:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
+  .reset { font-size:12px; color:var(--muted); text-decoration:underline; text-underline-offset:2px; white-space:nowrap; }
+  .reset:hover { color:var(--ink); }
+  iframe { display:block; width:100%; height:calc(100vh - 52px); border:0; background:#fff; }
+  @media (max-width:900px) {
+    .title { display:none; }
+    .bar { gap:10px; padding:0 10px; }
+    .reset { display:none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Module Outputs in Reports</h1>
-  <div class="sub">Prototype · Frinks Edge · Analytics &amp; Reports · Today / After change switch on every screen</div>
-</header>
-
-<h2>Today</h2>
-<div class="grid">
-  <a class="card" href="reports.html?mode=today"><img src="reports-today.png" alt="Reports table today"><div class="body"><div class="t">Reports table</div><div class="us">Today</div></div></a>
+<div class="bar">
+  <div class="title">Module Outputs in Reports</div>
+  <nav class="steps" id="steps" aria-label="Steps"></nav>
+  <div class="right">
+    <div class="seg" id="seg" role="group" aria-label="Mode">
+      <button type="button" data-mode="today" aria-pressed="false">Today</button>
+      <button type="button" data-mode="after" aria-pressed="true">After change</button>
+    </div>
+    <button type="button" class="nbtn b" id="back">Back</button>
+    <button type="button" class="nbtn p" id="next">Next step</button>
+    <button type="button" class="reset" id="reset">Start again</button>
+  </div>
 </div>
+<iframe id="screen" title="Prototype screen"></iframe>
 
-<h2>After change</h2>
-<div class="grid">
-  <a class="card" href="reports.html?mode=after&amp;state=setup-empty"><img src="setup-empty.png" alt="Module Outputs setup, nothing ticked"><div class="body"><div class="t">Module Outputs setup: first time</div><div class="us">After change</div></div></a>
-  <a class="card" href="reports.html?mode=after&amp;state=setup"><img src="setup.png" alt="Module Outputs setup, CP3 ticked and renamed"><div class="body"><div class="t">Module Outputs setup: tick and rename</div><div class="us">After change</div></div></a>
-  <a class="card" href="reports.html?mode=after&amp;state=setup-more"><img src="setup-more.png" alt="Module Outputs setup, Variant B CP1 with more module types"><div class="body"><div class="t">Module Outputs setup: more module types</div><div class="us">After change</div></div></a>
-  <a class="card" href="reports.html?mode=after&amp;state=setup-more-end"><img src="setup-more-end.png" alt="Module Outputs setup, Variant B CP1 scrolled to the last modules"><div class="body"><div class="t">Module Outputs setup: more module types (end)</div><div class="us">After change</div></div></a>
-  <a class="card" href="reports.html?mode=after"><img src="reports-after.png" alt="Reports table with Module Outputs column"><div class="body"><div class="t">Reports table: Module Outputs column</div><div class="us">After change</div></div></a>
-  <a class="card" href="reports.html?mode=after&amp;state=edit-table"><img src="edit-table-after.png" alt="Edit Table with Module Outputs checkbox"><div class="body"><div class="t">Edit Table: Module Outputs column</div><div class="us">After change</div></div></a>
-</div>
+<script>
+(function () {
+  const KEY = 'module-outputs-proto';
+  const STEPS = [
+    { id: 'reports', label: 'Reports table', file: 'reports.html', state: 'table' },
+    { id: 'setup', label: 'Open Module Outputs', file: 'reports.html', state: 'setup-empty' },
+    { id: 'choose', label: 'Choose & rename', file: 'reports.html', state: 'choose' },
+    { id: 'more-modules', label: 'Other module types', file: 'reports.html', state: 'more-modules' },
+    { id: 'column', label: 'Module Outputs column', file: 'reports.html', state: 'column' },
+    { id: 'edit-table', label: 'Edit Table', file: 'reports.html', state: 'edit-table' },
+    { id: 'search', label: 'Search', file: 'reports.html', state: 'search' },
+    { id: 'excel', label: 'Excel export', file: 'excel.html' },
+    { id: 'no-permission', label: 'Without Update permission', file: 'reports.html', state: 'no-permission' },
+  ];
+  const $ = (id) => document.getElementById(id);
+  let mode = 'after';
+  try { if (new URLSearchParams(location.search).get('mode') === 'today') mode = 'today'; } catch (e) { /* ignore */ }
+  let skipLoad = false, extra = null;
 
-<footer>Sample data only.</footer>
+  const currentIndex = () => {
+    const id = decodeURIComponent((location.hash || '').slice(1));
+    const i = STEPS.findIndex((s) => s.id === id);
+    return i < 0 ? 0 : i;
+  };
+  function srcFor(step) {
+    const q = [];
+    if (step.state) q.push('state=' + step.state);
+    q.push('mode=' + mode);
+    if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
+    return step.file + '?' + q.join('&');
+  }
+  function load() {
+    const url = srcFor(STEPS[currentIndex()]);
+    extra = null;
+    const f = $('screen');
+    // Replace (not push) so browser Back walks the steps, not the frame's own loads.
+    try { if (f.contentWindow && f.getAttribute('src')) { f.contentWindow.location.replace(url); return; } } catch (e) { /* fall through */ }
+    f.setAttribute('src', url);
+  }
+  function renderBar() {
+    const i = currentIndex();
+    $('steps').innerHTML = '<span class="grp">Frinks Edge</span>' + STEPS.map((s, k) =>
+      `<button type="button" class="chip${k === i ? ' on' : ''}" data-id="${s.id}" title="${k + 1}. ${s.label}"${k === i ? ' aria-current="step"' : ''}>` +
+      `<span class="n">${k + 1}</span><span class="l">${s.label}</span></button>`).join('');
+    const on = $('steps').querySelector('.chip.on');
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    $('back').disabled = i === 0;
+    $('next').disabled = i === STEPS.length - 1;
+    document.querySelectorAll('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    document.title = `${i + 1}. ${STEPS[i].label} · Module Outputs in Reports`;
+  }
+  function go(id) {
+    if (decodeURIComponent(location.hash.slice(1)) === id) { if (!skipLoad) load(); skipLoad = false; renderBar(); return; }
+    location.hash = id;
+  }
+
+  window.addEventListener('hashchange', () => { renderBar(); if (skipLoad) skipLoad = false; else load(); });
+  $('steps').addEventListener('click', (e) => { const c = e.target.closest('[data-id]'); if (c) { extra = null; go(c.dataset.id); } });
+  $('back').addEventListener('click', () => { const i = currentIndex(); if (i > 0) go(STEPS[i - 1].id); });
+  $('next').addEventListener('click', () => { const i = currentIndex(); if (i < STEPS.length - 1) go(STEPS[i + 1].id); });
+  $('seg').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]');
+    if (!b || b.dataset.mode === mode) return;
+    mode = b.dataset.mode;
+    try { history.replaceState(null, '', (mode === 'today' ? '?mode=today' : location.pathname) + location.hash); } catch (err) { /* file:// may refuse */ }
+    renderBar(); load();
+  });
+  $('reset').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }
+    extra = null;
+    if (currentIndex() === 0 && location.hash) load(); else go(STEPS[0].id);
+  });
+  // Real controls inside a screen move the flow on.
+  window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'module-outputs-nav' || !STEPS.some((s) => s.id === d.to)) return;
+    skipLoad = !!d.inPlace;
+    extra = d.toast ? { toast: d.toast } : null;
+    go(d.to);
+  });
+
+  if (!location.hash) { try { history.replaceState(null, '', location.pathname + location.search + '#' + STEPS[0].id); } catch (e) { location.hash = STEPS[0].id; } }
+  renderBar();
+  load();
+})();
+</script>
 </body>
 </html>
