@@ -195,6 +195,14 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 .vrow + .vrow{border-top:1px solid var(--line-soft)}
 .vrow input[type=checkbox]{width:16px;height:16px;flex-shrink:0;cursor:pointer;accent-color:var(--primary)}
 .vrow.gs{border-top:1px solid var(--border)}
+.vl{display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer}
+.dnw{flex-shrink:0;width:240px}
+.dn{display:block;width:100%;height:32px;border:1px solid var(--border-strong);border-radius:6px;padding:0 10px;font-size:14px;background:var(--surface);color:var(--text)}
+.dn::placeholder{color:var(--muted-2)}
+.dn:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+.dn.err{border-color:#ef4444}
+.dn.err:focus{outline-color:#ef4444}
+.dnerr{margin-top:3px;font-size:12px;line-height:16px;color:#ef4444}
 /* Edge system key look (deployment-frontend KeySelector + Chip): prefix chip, black name, bold grey ">" */
 .kb{display:flex;align-items:center;flex-wrap:wrap;row-gap:4px;min-width:0}
 .kc{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:14px;line-height:20px;white-space:nowrap}
@@ -294,6 +302,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   .caps{flex:0 0 auto;max-height:180px;border-right:0;border-bottom:1px solid var(--border)}
   .pane{padding:12px}
   .vrow{flex-wrap:wrap}
+  .dnw{width:calc(100% - 28px);margin-left:28px}
   .vw-in{padding:16px}
   .vw-head{flex-wrap:wrap}
   .vw-nav{padding:10px}
@@ -493,7 +502,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   </div>
 </div>
 
-<script src="shared.js?v=20261023c"></script>
+<script src="shared.js?v=20261023d"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -764,12 +773,26 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   $('sclear').addEventListener('click', () => { term = ''; $('search').value = ''; $('sclear').hidden = true; renderTable(); });
 
   // ---------- Module Outputs setup modal ----------
-  const M = { sel: 'A-CP1', draft: null };
+  // Draft while the window is open: ticked keys, typed Display Names (kept when unticked until Save/Cancel), touched rows.
+  const M = { sel: 'A-CP1', on: null, names: null, touched: new Set() };
+  const tk = (capId, id) => capId + '::' + id;
+  function capErrors(capId) {
+    const on = M.on[capId] || {}, names = M.names[capId] || {}, errs = {}, seen = {};
+    Object.keys(on).forEach((id) => {
+      const v = (names[id] || '').trim();
+      if (!v) { errs[id] = 'Enter a display name'; return; }
+      const low = v.toLowerCase();
+      (seen[low] = seen[low] || []).push(id);
+    });
+    Object.values(seen).forEach((ids) => { if (ids.length > 1) ids.forEach((id) => { errs[id] = 'Name already used in this capture'; }); });
+    return errs;
+  }
+  const anyError = () => CAPTURES.some((c) => Object.keys(capErrors(c.id)).length > 0);
   function renderCapList() {
     let html = '', last = '';
     CAPTURES.forEach((cap) => {
       if (cap.variant !== last) { html += `<div class="caps-h">${cap.variant}</div>`; last = cap.variant; }
-      const n = ticked(M.draft, cap.id);
+      const n = Object.keys(M.on[cap.id] || {}).length;
       html += `<button type="button" class="cap${cap.id === M.sel ? ' on' : ''}" data-cap="${cap.id}" aria-current="${cap.id === M.sel}">` +
         `<span>${cap.pos} · ${cap.name}</span><span class="cnt${n ? ' on' : ''}">${n}</span></button>`;
     });
@@ -779,22 +802,44 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const chip = (cls, text) => `<span class="kc ${cls}">${esc(text)}</span>`;
   const seg = (cls, prefix, name) => `<span style="display:inline-flex;align-items:center">${chip(cls, prefix)}<span class="kl">${esc(name)}</span></span>`;
   const SEP = '<span class="ksep">&gt;</span>';
+  function rowInner(k) {
+    const on = !!M.on[M.sel][k.id], name = M.names[M.sel][k.id] || '';
+    return `<label class="vl"><input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(k.id)}">` +
+      `<span class="kb">${k.cls ? seg('b', 'cls', k.cls) + SEP : ''}${seg('r', 'key-' + TYPE[k.t], k.s)}</span></label>` +
+      (on ? `<div class="dnw"><input type="text" class="dn" maxlength="40" placeholder="Display Name" value="${esc(name)}" aria-label="Display Name for ${esc(k.s)}"><div class="dnerr" hidden></div></div>` : '');
+  }
   function renderPane() {
-    const cap = CAP[M.sel], conf = M.draft[M.sel];
+    const cap = CAP[M.sel];
     $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
       cap.cards.map((m) => `<section class="mcard"><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}</div>` +
         (m.rows.length ? m.rows.map((k, i) => {
-          const on = !!conf[k.id], groupStart = k.cls && (i === 0 || m.rows[i - 1].cls !== k.cls);
-          return `<label class="vrow${groupStart && i > 0 ? ' gs' : ''}" data-val="${esc(k.id)}">` +
-            `<input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(k.id)}">` +
-            `<span class="kb">${k.cls ? seg('b', 'cls', k.cls) + SEP : ''}${seg('r', 'key-' + TYPE[k.t], k.s)}</span></label>`;
+          const groupStart = k.cls && i > 0 && m.rows[i - 1].cls !== k.cls;
+          return `<div class="vrow${groupStart ? ' gs' : ''}" data-val="${esc(k.id)}">${rowInner(k)}</div>`;
         }).join('') : '<div class="nokeys">No keys</div>') + '</section>').join('');
     $('capPane').scrollTop = 0;
+    refreshErrors();
+  }
+  // Duplicate names show at once; an empty name shows once its row has been left. Save waits for every capture.
+  function refreshErrors() {
+    const errs = capErrors(M.sel);
+    $('capPane').querySelectorAll('.vrow').forEach((row) => {
+      const inp = row.querySelector('.dn'); if (!inp) return;
+      const id = row.dataset.val, msg = errs[id];
+      const show = msg && (msg !== 'Enter a display name' || M.touched.has(tk(M.sel, id)));
+      inp.classList.toggle('err', !!show);
+      const e = row.querySelector('.dnerr'); e.hidden = !show; e.textContent = show ? msg : '';
+    });
+    $('moSave').disabled = anyError();
   }
   function openModal(sel) {
     closeEditTable();
     M.sel = sel || 'A-CP1';
-    M.draft = clone(S.setup);
+    M.on = {}; M.names = {}; M.touched = new Set();
+    CAPTURES.forEach((c) => {
+      const conf = S.setup[c.id] || {};
+      M.on[c.id] = Object.fromEntries(Object.keys(conf).map((id) => [id, true]));
+      M.names[c.id] = Object.assign({}, conf);
+    });
     renderCapList(); renderPane();
     $('mo').hidden = false;
   }
@@ -804,7 +849,10 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     MO.postNav(S.saved ? 'column' : 'reports');
   }
   function saveModal() {
-    S.setup = clone(M.draft); S.saved = true;
+    if (anyError()) return;
+    const setup = {};
+    CAPTURES.forEach((c) => { setup[c.id] = {}; Object.keys(M.on[c.id]).forEach((id) => { setup[c.id][id] = M.names[c.id][id].trim(); }); });
+    S.setup = MO.normalizeSetup(setup); S.saved = true;
     MO.writeStore({ saved: true, setup: MO.toStored(S.setup) });
     $('mo').hidden = true;
     if (MO.postNav('column', { toast: 'saved' })) return;
@@ -824,13 +872,27 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   $('capList').addEventListener('click', (e) => {
     const b = e.target.closest('[data-cap]');
     if (!b || b.dataset.cap === M.sel) return;
+    Object.keys(M.on[M.sel]).forEach((id) => M.touched.add(tk(M.sel, id)));
     M.sel = b.dataset.cap; renderCapList(); renderPane();
   });
   $('capPane').addEventListener('change', (e) => {
     if (e.target.type !== 'checkbox') return;
-    const row = e.target.closest('[data-val]');
-    if (e.target.checked) M.draft[M.sel][row.dataset.val] = true; else delete M.draft[M.sel][row.dataset.val];
-    renderCapList();
+    const row = e.target.closest('[data-val]'), id = row.dataset.val;
+    if (e.target.checked) M.on[M.sel][id] = true; else delete M.on[M.sel][id];
+    const k = CAP[M.sel].cards.flatMap((m) => m.rows).find((r) => r.id === id);
+    row.innerHTML = rowInner(k);
+    if (e.target.checked) row.querySelector('.dn').focus();
+    renderCapList(); refreshErrors();
+  });
+  $('capPane').addEventListener('input', (e) => {
+    if (!e.target.classList.contains('dn')) return;
+    M.names[M.sel][e.target.closest('[data-val]').dataset.val] = e.target.value;
+    refreshErrors();
+  });
+  $('capPane').addEventListener('focusout', (e) => {
+    if (!e.target.classList.contains('dn')) return;
+    M.touched.add(tk(M.sel, e.target.closest('[data-val]').dataset.val));
+    refreshErrors();
   });
 
   // ---------- Download popup (mirrors DownloadModal.jsx) ----------
@@ -964,7 +1026,12 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   loadState();
   renderAll();
   if (after && step === 'setup') openModal('A-CP1');
-  else if (after && step === 'choose') openModal('A-CP3');
+  else if (after && step === 'choose') {
+    openModal('A-CP3');
+    // Bring the first ticked key's card to the top so its Display Name inputs show.
+    const first = $('capPane').querySelector('.vrow input[type=checkbox]:checked');
+    if (first) { const card = first.closest('.mcard'); $('capPane').scrollTop = card.offsetTop - $('capPane').offsetTop - 12; }
+  }
   else if (after && step === 'more-modules') {
     openModal('B-CP1');
     if (rawState === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
