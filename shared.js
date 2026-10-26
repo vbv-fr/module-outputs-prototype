@@ -21,28 +21,33 @@
   // ---------- Edge system keys each capture offers (systemKeyDefinition.ts) ----------
   // t = datatype (1 bool, 2 str, 3 num); s = suffix exactly as stored; sample = Display Name in the sample setup (ticked).
   const K = (t, s, sample) => ({ t, s, sample: sample || null });
-  // Keys that add up or average across cycles (pass_count, fail_count, count_till_now, avg_inference_time) are not offered.
-  const modKeys = () => [K(1, 'result')];
+  const modKeys = () => [K(1, 'result'), K(3, 'pass_count'), K(3, 'fail_count')];
   const confCard = (cap) => ({ name: `${cap.pos} · ${cap.name}`, code: 'conf', conf: true, keys: [
-    K(3, 'completion_status'), K(3, 'inference_time'), K(1, 'result')] });
-  const clsKeys = (cls, countName) => ({ name: cls, keys: [K(1, 'result'), K(3, 'current_count', countName)] });
+    K(3, 'completion_status'), K(3, 'inference_time'), K(3, 'avg_inference_time'),
+    K(3, 'pass_count'), K(3, 'fail_count'), K(1, 'result')] });
+  const clsKeys = (cls, countName) => ({ name: cls, keys: [K(1, 'result'), K(3, 'current_count', countName),
+    K(3, 'count_till_now')] });
   // Dimensions: the same five variant-level keys, listed under each capture the dimension measures.
   const dimCard = (name, sample, cross) => ({ id: 'DIM:' + name, name, type: 'Dimensions', code: 'DIM', cross: cross || null, keys: [
     K(1, 'dim_result'), K(3, 'dim_predicted_value', sample), K(2, 'dim_unit_used'), K(2, 'dim_process'), K(2, 'dim_current_gt')] });
   const seKeys = (shape) => [K(3, `shape:${shape}_angle`), K(3, `shape:${shape}_length`), K(3, `shape:${shape}_error_pct`)];
+  // Edge Search: error % plus the per-line keys Edge now registers (lines 1 … the shape's maximum results).
+  const edgeSearchKeys = (shape, lines) => [K(3, `shape:${shape}_error_pct`)].concat(
+    Array.from({ length: lines }, (_, i) => [K(3, `shape:${shape}_line:${i + 1}_angle`), K(3, `shape:${shape}_line:${i + 1}_length`)]).flat());
 
   const A_CP1 = [
     { name: 'Fastener Check', type: 'Object Detection & Classification', code: 'ODC', keys: modKeys(),
       classes: [clsKeys('Screw', 'Screw count'), clsKeys('Washer', 'Washer count')] },
     { name: 'Slot Check', type: 'Image Classification', code: 'IC', keys: modKeys().concat([
       K(2, 'detected_class (Slot 1)', 'Slot 1 class'), K(2, 'detected_class (Slot 2)', 'Slot 2 class'), K(2, 'correct_class')]) },
-    { name: 'Bracket Edge', type: 'Shape Extractor', code: 'SE', keys: seKeys('Bracket') },
+    { name: 'Bracket Edge', type: 'Shape Extractor', code: 'SE', lines: true, keys: edgeSearchKeys('Bracket', 2) },
     // Cross-capture: measured from Bracket Edge here to Label Edge in CP3; ticked under CP3 only in the sample.
     dimCard('Distance_LabelGap', null, 'Front View, Label Side'),
   ];
   const A_CP3 = [
     { name: 'Serial Reader', type: 'OCR', code: 'OCR', keys: modKeys().concat([
-      K(2, 'detected_text', 'Serial No.'), K(2, 'labelName:Serial_gt_text'), K(1, 'labelName:Serial_result')]) },
+      K(2, 'detected_text', 'Serial No.'), K(2, 'labelName:Serial_gt_text'), K(1, 'labelName:Serial_result'),
+      K(2, 'labelName:Serial_pass_count'), K(2, 'labelName:Serial_fail_count')]) },
     { name: 'QR Reader', type: 'Code Reader', code: 'CR', keys: modKeys().concat([
       K(2, 'detected_string', 'QR code'), K(2, 'gt_string')]) },
     { name: 'Surface Check', type: 'Segmentation', code: 'SEG', keys: [] },
@@ -51,12 +56,13 @@
   ];
   const B_CP1 = [
     { name: 'Seal Check', type: 'Bead Inspection', code: 'BEAD', keys: [
-      K(1, 'result', 'Bead result'),
+      K(1, 'result', 'Bead result'), K(3, 'pass_count'), K(3, 'fail_count'),
       K(3, 'caliper_pass_percentage', 'Caliper pass %'), K(2, 'bead_class_name'), K(1, 'bead:Door seal_result'),
+      K(3, 'bead:Door seal_pass_count'), K(3, 'bead:Door seal_fail_count'),
       K(1, 'bead:Door seal_bead_width'), K(1, 'bead:Door seal_bead_gap/position')] },
     { name: 'Cap Colour', type: 'Colour Detection', code: 'CD', keys: modKeys().concat([
-      K(2, 'colorName:Red_detected_color'), K(1, 'colorName:Red_result'),
-      K(3, 'colorName:Red_distribution_percentage', 'Red coverage')]) },
+      K(2, 'colorName:Red_detected_color'), K(1, 'colorName:Red_result'), K(3, 'colorName:Red_pass_count'),
+      K(3, 'colorName:Red_fail_count'), K(3, 'colorName:Red_distribution_percentage', 'Red coverage')]) },
     { name: 'Hole Fit', type: 'Shape Extractor', code: 'SE', keys: [
       K(3, 'shape:Hole_radius', 'Hole radius'), K(3, 'shape:Hole_perimeter'), K(3, 'shape:Hole_area'),
       K(3, 'shape:Hole_circularity'), K(3, 'shape:Hole_convexity'),
@@ -153,7 +159,8 @@
       'ODC|result': b(odcOk), 'ODC|cls:Screw|result': b(odcOk), 'ODC|cls:Screw|current_count': String(screws),
       'ODC|cls:Washer|result': 'true', 'ODC|cls:Washer|current_count': '2',
       'IC|result': b(icOk), 'IC|detected_class (Slot 1)': 'Good', 'IC|detected_class (Slot 2)': slot2, 'IC|correct_class': 'Good',
-      'SE|shape:Bracket_angle': angle, 'SE|shape:Bracket_length': '184.30', 'SE|shape:Bracket_error_pct': '0.42' }, dimOut(gap));
+      'SE|shape:Bracket_error_pct': '0.42', 'SE|shape:Bracket_line:1_angle': angle, 'SE|shape:Bracket_line:1_length': '184.30',
+      'SE|shape:Bracket_line:2_angle': '-0.31', 'SE|shape:Bracket_line:2_length': '96.12' }, dimOut(gap));
   }
   function cp3Out(serial, code, ms, angle, gap) {
     const read = code !== '—';

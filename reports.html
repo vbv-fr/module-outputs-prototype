@@ -554,7 +554,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   </div>
 </div>
 
-<script src="shared.js?v=20261026b"></script>
+<script src="shared.js?v=20261026c"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -664,7 +664,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const params = new URLSearchParams(location.search);
   const mode = MO.modeFromUrl();
   const rawState = params.get('state') || '';
-  const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-cross': 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
+  const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-cross': 'choose', 'setup-lines': 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
   const STEPS = ['table', 'setup', 'instance', 'choose', 'setup-separate', 'more-modules', 'restart', 'before-restart', 'column', 'separate', 'edit-table', 'search', 'no-permission'];
   let step = ALIAS[rawState] || rawState;
   if (!STEPS.includes(step)) step = mode === 'after' ? 'column' : 'table';
@@ -917,7 +917,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     if (!M.inst || !M.sel) { $('capPane').innerHTML = ''; refreshErrors(); return; }
     const cap = CAP[M.sel];
     $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
-      cap.cards.map((m) => `<section class="mcard"${m.cross ? ' data-cross="1"' : ''}><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}` +
+      cap.cards.map((m) => `<section class="mcard"${m.cross ? ' data-cross="1"' : ''}${m.lines ? ' data-lines="1"' : ''}><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}` +
         (m.cross ? `<span>· ${esc(m.cross)}</span><span class="bdg purple">⇄ CROSS-CAPTURE</span>` : '') + '</div>' +
         (m.rows.length ? m.rows.map((k, i) => {
           const groupStart = k.cls && i > 0 && m.rows[i - 1].cls !== k.cls;
@@ -1186,7 +1186,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   if (after && step === 'setup') openModal('A-CP1');
   else if (after && step === 'instance') { openModal('A-CP1'); openInstPanel(); }
   else if (after && (step === 'choose' || step === 'setup-separate')) {
-    openModal('A-CP3');
+    openModal(rawState === 'setup-lines' ? 'A-CP1' : 'A-CP3');
     if (step === 'setup-separate' && M.inst) { Dr().mode = 'separate'; renderTop(); }
     showFirstTicked();
   } else if (after && step === 'more-modules') {
@@ -1205,6 +1205,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   }
   // Separate columns step: start scrolled to the key columns at the right end.
   if (step === 'separate') $('tscroll').scrollLeft = $('tscroll').scrollWidth;
+  if (rawState === 'setup-lines') { const x = $('capPane').querySelector('[data-lines]'); if (x) $('capPane').scrollTop = x.offsetTop - $('capPane').offsetTop - 12; }
   if (rawState === 'setup-cross') { const x = $('capPane').querySelector('[data-cross]'); if (x) $('capPane').scrollTop = x.offsetTop - $('capPane').offsetTop - 12; }
   if (params.get('toast') === 'saved') toast('Module Outputs saved');
   // ?open=<cycle>:<result|raw>:<image> (1-based) opens the image viewer on load, e.g. ?open=2:result:2

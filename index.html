@@ -93,7 +93,7 @@
     const q = [];
     if (step.state) q.push('state=' + step.state);
     q.push('mode=' + mode);
-    q.push('v=20261026b');
+    q.push('v=20261026c');
     if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
     return step.file + '?' + q.join('&');
   }
