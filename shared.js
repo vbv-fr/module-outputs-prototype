@@ -127,34 +127,43 @@
   }
 
   // ---------- Sample cycles (Line 1 Instance, newest first) ----------
-  // Per-cycle values. Running counters (pass/fail counts, count till now, averages, completion status) have no
-  // per-cycle value, so they are absent here and show as "—".
-  function cp1Out(screws, slot2, ms) {
+  // Per-cycle values. Edge saves a copy of every key with each capture, so running totals (pass/fail counts,
+  // count till now, average inference time, completion status) show what they held when that capture finished.
+  // n = position in time, 0 = oldest cycle (cycle 3) … 2 = newest (cycle 1).
+  const at = (arr, n) => String(arr[n]);
+  function cp1Out(n, screws, slot2, ms) {
     const odcOk = screws === 4, icOk = slot2 !== 'Bad', b = (x) => (x ? 'true' : 'false');
-    return { 'conf|inference_time': String(ms), 'conf|result': b(odcOk && icOk), 'ODC|result': b(odcOk),
-      'ODC|cls:Screw|result': b(odcOk), 'ODC|cls:Screw|current_count': String(screws),
-      'ODC|cls:Washer|result': 'true', 'ODC|cls:Washer|current_count': '2',
-      'IC|result': b(icOk), 'IC|detected_class (Slot 1)': 'Good', 'IC|detected_class (Slot 2)': slot2, 'IC|correct_class': 'Good' };
+    return { 'conf|completion_status': '100', 'conf|inference_time': String(ms), 'conf|avg_inference_time': at([182, 184, 183], n),
+      'conf|pass_count': at([41, 41, 42], n), 'conf|fail_count': at([6, 7, 7], n), 'conf|result': b(odcOk && icOk),
+      'ODC|result': b(odcOk), 'ODC|pass_count': at([43, 43, 44], n), 'ODC|fail_count': at([4, 5, 5], n),
+      'ODC|cls:Screw|result': b(odcOk), 'ODC|cls:Screw|current_count': String(screws), 'ODC|cls:Screw|count_till_now': at([120, 123, 127], n),
+      'ODC|cls:Washer|result': 'true', 'ODC|cls:Washer|current_count': '2', 'ODC|cls:Washer|count_till_now': at([60, 62, 64], n),
+      'IC|result': b(icOk), 'IC|pass_count': at([44, 44, 45], n), 'IC|fail_count': at([3, 4, 4], n),
+      'IC|detected_class (Slot 1)': 'Good', 'IC|detected_class (Slot 2)': slot2, 'IC|correct_class': 'Good' };
   }
-  function cp3Out(serial, code, ms) {
+  function cp3Out(n, serial, code, ms) {
     const read = code !== '—', b = (x) => (x ? 'true' : 'false');
-    return { 'conf|inference_time': String(ms), 'conf|result': b(read), 'OCR|result': 'true', 'OCR|detected_text': serial,
+    return { 'conf|completion_status': '100', 'conf|inference_time': String(ms), 'conf|avg_inference_time': at([140, 141, 141], n),
+      'conf|pass_count': at([46, 46, 47], n), 'conf|fail_count': at([1, 2, 2], n), 'conf|result': b(read),
+      'OCR|result': 'true', 'OCR|pass_count': at([47, 48, 49], n), 'OCR|fail_count': '0', 'OCR|detected_text': serial,
       'OCR|labelName:Serial_gt_text': serial, 'OCR|labelName:Serial_result': 'true',
-      'CR|result': b(read), 'CR|detected_string': code, 'CR|gt_string': read ? code : 'FRK2026A0041' };
+      'OCR|labelName:Serial_pass_count': at([47, 48, 49], n), 'OCR|labelName:Serial_fail_count': '0',
+      'CR|result': b(read), 'CR|pass_count': at([46, 46, 47], n), 'CR|fail_count': at([1, 2, 2], n),
+      'CR|detected_string': code, 'CR|gt_string': read ? code : 'FRK2026A0041' };
   }
   // kind/frame fields feed the image viewer only.
   const cp1 = (result, out, frame) => ({ pos: 'CP1', name: 'Front View', kind: 'front', result, out, frame });
   const cp3 = (result, out, frame) => ({ pos: 'CP3', name: 'Label Side', kind: 'label', result, out, frame });
   const CYCLES = [
     { ts: '20/10/2026, 02:14:07 PM', variant: 'Variant A', result: true, caps: [
-      cp1(true, cp1Out(4, 'Empty', 184), { screw: '4', slot1: 'Good', slot2: 'Empty' }),
-      cp3(true, cp3Out('SN-48213', 'FRK2026A0042', 139), { text: 'SN-48213', code: 'FRK2026A0042', scratch: '2', dent: '0' })] },
+      cp1(true, cp1Out(2, 4, 'Empty', 184), { screw: '4', slot1: 'Good', slot2: 'Empty' }),
+      cp3(true, cp3Out(2, 'SN-48213', 'FRK2026A0042', 139), { text: 'SN-48213', code: 'FRK2026A0042', scratch: '2', dent: '0' })] },
     { ts: '20/10/2026, 02:14:01 PM', variant: 'Variant A', result: false, caps: [
-      cp1(false, cp1Out(3, 'Bad', 191), { screw: '3', slot1: 'Good', slot2: 'Bad' }),
-      cp3(false, cp3Out('SN-48212', '—', 143), { text: 'SN-48212', code: '—', scratch: '3', dent: '1' })] },
+      cp1(false, cp1Out(1, 3, 'Bad', 191), { screw: '3', slot1: 'Good', slot2: 'Bad' }),
+      cp3(false, cp3Out(1, 'SN-48212', '—', 143), { text: 'SN-48212', code: '—', scratch: '3', dent: '1' })] },
     { ts: '20/10/2026, 02:13:55 PM', variant: 'Variant A', result: true, caps: [
-      cp1(true, cp1Out(4, 'Empty', 179), { screw: '4', slot1: 'Good', slot2: 'Empty' }),
-      cp3(true, cp3Out('SN-48211', 'FRK2026A0040', 137), { text: 'SN-48211', code: 'FRK2026A0040', scratch: '1', dent: '0' })] },
+      cp1(true, cp1Out(0, 4, 'Empty', 179), { screw: '4', slot1: 'Good', slot2: 'Empty' }),
+      cp3(true, cp3Out(0, 'SN-48211', 'FRK2026A0040', 137), { text: 'SN-48211', code: 'FRK2026A0040', scratch: '1', dent: '0' })] },
   ];
   const capIdOf = (cycle, cap) => cycle.variant.slice(-1) + '-' + cap.pos;
   // Ticked keys of one capture row (Line 1 Instance cycles), in setup order: [{ name: Display Name, value }]
