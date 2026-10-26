@@ -231,6 +231,14 @@ td.mo-td > div{justify-content:flex-start;text-align:left}
 .ksep{display:flex;align-items:center;padding:0 4px;font-weight:700;color:#9ca3af}
 .mcard-h .kc{padding:0 6px;font-size:12px;line-height:18px}
 .nokeys{padding:10px 16px;font-size:13px;color:var(--muted-2)}
+/* Badge (deployment-frontend dimension-configuration/formFields.jsx): rounded-full px-2 py-0.5 text-[10.5px] font-semibold */
+.bdg{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:10.5px;line-height:14px;font-weight:600;white-space:nowrap}
+.bdg.purple{background:#f3e8ff;color:#6b21a8} .bdg.amber{background:#fef3c7;color:#92400e}
+/* WarningModal.jsx: header px-6 py-4, text-sm gray-700 body px-6 py-6, Cancel (border) + confirm */
+.md.wm{max-width:480px}
+.wm-body{padding:24px}
+.wm-body p{font-size:14px;line-height:20px;color:#374151}
+.wm-body p + p{margin-top:8px}
 .md-foot{display:flex;justify-content:flex-end;gap:12px;padding:16px 24px}
 .btn{height:auto;border:1px solid transparent;border-radius:6px;padding:8px 24px;font-size:14px;line-height:20px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .btn.b{border-color:var(--primary);color:var(--primary);background:transparent}
@@ -455,6 +463,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
         <button type="button" class="isel-b" id="iselBtn" aria-haspopup="listbox" aria-labelledby="iselLbl"><span id="iselTxt"></span><svg class="i"><use href="#i-down"/></svg></button>
         <div class="isel-p" id="iselPanel" role="listbox" hidden></div>
       </div>
+      <span class="bdg amber" id="pendTag" hidden>Applies after restart</span>
       <div class="dmode" id="dmode" role="radiogroup">
         <label><input type="radio" name="dmode" value="same">Show in same column</label>
         <label><input type="radio" name="dmode" value="separate">Show in separate columns</label>
@@ -467,6 +476,21 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     <div class="md-foot">
       <button type="button" class="btn b" id="moCancel">Cancel</button>
       <button type="button" class="btn p" id="moSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Restart warning (mirrors shared/ui/WarningModal.jsx) -->
+<div class="ov" id="wm" hidden>
+  <div class="md wm" role="alertdialog" aria-modal="true" aria-labelledby="wmTitle">
+    <div class="md-head">
+      <h3 id="wmTitle">Warning</h3>
+      <button type="button" class="md-x" id="wmClose" aria-label="Close"><svg viewBox="0 0 32 32"><path d="M24 8L8 24M8 8L24 24"/></svg></button>
+    </div>
+    <div class="wm-body"><p id="wmText"></p></div>
+    <div class="md-foot">
+      <button type="button" class="btn b" id="wmCancel">Cancel</button>
+      <button type="button" class="btn p" id="wmSave">Save</button>
     </div>
   </div>
 </div>
@@ -530,7 +554,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   </div>
 </div>
 
-<script src="shared.js?v=20261026a"></script>
+<script src="shared.js?v=20261026b"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -640,8 +664,8 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const params = new URLSearchParams(location.search);
   const mode = MO.modeFromUrl();
   const rawState = params.get('state') || '';
-  const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
-  const STEPS = ['table', 'setup', 'instance', 'choose', 'setup-separate', 'more-modules', 'column', 'separate', 'edit-table', 'search', 'no-permission'];
+  const ALIAS = { reports: 'table', 'setup-empty': 'setup', setup: 'choose', 'setup-cross': 'choose', 'setup-more': 'more-modules', 'setup-more-end': 'more-modules' };
+  const STEPS = ['table', 'setup', 'instance', 'choose', 'setup-separate', 'more-modules', 'restart', 'before-restart', 'column', 'separate', 'edit-table', 'search', 'no-permission'];
   let step = ALIAS[rawState] || rawState;
   if (!STEPS.includes(step)) step = mode === 'after' ? 'column' : 'table';
   const after = mode === 'after';
@@ -650,18 +674,20 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   // ---------- Shared setup (localStorage via shared.js) ----------
   // Instance picked in the Reports filter bar (?instance=none = nothing picked). The sample cycles belong to Line 1.
   const filterInst = params.get('instance') === 'none' ? '' : 'line1';
-  const S = { saved: false, inst: null };
+  // inUse = the setup each instance's deployment started with (drives the table); latest = saved choices (the window).
+  // Line 1 Instance is running: what is saved for it waits for a restart. The steps after "Before restart" are after it.
+  const KIND = ['table', 'setup', 'instance'].includes(step) ? 'first'
+    : ['choose', 'setup-separate', 'more-modules', 'restart'].includes(step) ? 'draft' : step === 'before-restart' ? 'pending' : 'restarted';
+  const S = { inUse: null, latest: null, pending: new Set() };
   function loadState() {
-    const firstTime = ['table', 'setup', 'instance'].includes(step);
-    const r = MO.resolveState(!firstTime);
-    S.inst = r.instances;
-    S.saved = r.stored || (!firstTime && !['choose', 'setup-separate', 'more-modules'].includes(step));
+    const r = MO.resolveState(KIND);
+    S.inUse = r.inUse; S.latest = r.latest; S.pending = new Set(r.pendingIds);
     // The Separate columns step (or ?display=separate) shows Line 1 in separate-columns mode without saving it.
-    if (step === 'separate' || params.get('display') === 'separate') S.inst.line1 = Object.assign({}, S.inst.line1, { mode: 'separate' });
+    if (step === 'separate' || params.get('display') === 'separate') S.inUse.line1 = Object.assign({}, S.inUse.line1, { mode: 'separate' });
   }
-  const curSetup = () => (filterInst ? S.inst[filterInst].setup : {});
-  const curMode = () => (filterInst ? S.inst[filterInst].mode : 'same');
-  const moAvailable = () => after && S.saved && !!filterInst && isSetUp(curSetup());
+  const curSetup = () => (filterInst ? S.inUse[filterInst].setup : {});
+  const curMode = () => (filterInst ? S.inUse[filterInst].mode : 'same');
+  const moAvailable = () => after && !!filterInst && isSetUp(curSetup());
 
   // ---------- Columns (mirrors columns.js; Module Outputs after Config Result once set up) ----------
   const BASE_COLUMNS = [
@@ -833,7 +859,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   const M = { inst: '', sel: null, d: {}, touched: new Set() };
   function draftFor(instId) {
     if (!M.d[instId]) {
-      const x = S.inst[instId], on = {}, names = {};
+      const x = S.latest[instId], on = {}, names = {};
       MO.capsOf(instId).forEach((c) => {
         const conf = x.setup[c.id] || {};
         on[c.id] = Object.fromEntries(Object.keys(conf).map((id) => [id, true]));
@@ -863,6 +889,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     $('iselTxt').innerHTML = name ? esc(name) : '<span class="ph">Select an instance</span>';
     $('iselPanel').innerHTML = MO.INSTANCES.map((i) => `<button type="button" class="isel-o" role="option" aria-selected="${i.id === M.inst}" data-inst="${i.id}">` +
       `<span class="rdot${i.id === M.inst ? ' on' : ''}"></span>${esc(i.name)}</button>`).join('');
+    $('pendTag').hidden = !M.inst || !S.pending.has(M.inst);
     $('dmode').classList.toggle('off', !M.inst);
     document.querySelectorAll('#dmode input').forEach((r) => { r.checked = !!M.inst && r.value === Dr().mode; r.disabled = !M.inst; });
   }
@@ -890,7 +917,8 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     if (!M.inst || !M.sel) { $('capPane').innerHTML = ''; refreshErrors(); return; }
     const cap = CAP[M.sel];
     $('capPane').innerHTML = `<div class="pane-h"><b>${cap.pos} · ${cap.name}</b><span>${cap.variant}</span></div>` +
-      cap.cards.map((m) => `<section class="mcard"><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}</div>` +
+      cap.cards.map((m) => `<section class="mcard"${m.cross ? ' data-cross="1"' : ''}><div class="mcard-h"><b>${esc(m.name)}</b>${chip('g', m.code)}${m.conf ? '' : `<span>${esc(m.type)}</span>`}` +
+        (m.cross ? `<span>· ${esc(m.cross)}</span><span class="bdg purple">⇄ CROSS-CAPTURE</span>` : '') + '</div>' +
         (m.rows.length ? m.rows.map((k, i) => {
           const groupStart = k.cls && i > 0 && m.rows[i - 1].cls !== k.cls;
           return `<div class="vrow${groupStart ? ' gs' : ''}" data-val="${esc(k.id)}">${rowInner(k)}</div>`;
@@ -932,27 +960,50 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     $('mo').hidden = false;
   }
   const modalOpen = () => !$('mo').hidden;
+  const homeStep = () => (S.pending.size ? 'before-restart' : isSetUp(S.inUse.line1.setup) ? 'column' : 'reports');
   function closeModal() {
     $('mo').hidden = true;
-    MO.postNav(S.saved ? 'column' : 'reports');
+    MO.postNav(homeStep());
   }
+  // Changed instances that are running: their changes wait for a restart, so Save asks first.
+  const runningChanged = () => Object.keys(M.d).filter((id) => M.d[id].dirty && MO.RUNNING.has(id));
   function saveModal() {
     if (anyError()) return;
-    const inst = MO.clone(S.inst);
+    const run = runningChanged();
+    if (run.length) { openWarning(run); return; }
+    commitSave();
+  }
+  function openWarning(ids) {
+    const names = ids.map((id) => MO.INSTANCES.find((i) => i.id === id).name).join(', ');
+    $('wmText').textContent = `These changes won't be reflected in the current deployment of ${names}. To see the changes, restart the deployment.`;
+    $('wm').hidden = false;
+  }
+  const closeWarning = () => { $('wm').hidden = true; };
+  function commitSave() {
+    closeWarning();
+    // Running instance: saved for the next start, the setup in use stays. Not running: in use at once.
+    const pending = {};
+    S.pending.forEach((id) => { pending[id] = S.latest[id]; });
+    const inUse = MO.clone(S.inUse);
     Object.entries(M.d).forEach(([id, x]) => {
       if (!x.dirty) return;
       const setup = {};
       MO.capsOf(id).forEach((c) => { setup[c.id] = {}; Object.keys(x.on[c.id]).forEach((k) => { setup[c.id][k] = (x.names[c.id][k] || '').trim(); }); });
-      inst[id] = { mode: x.mode, setup: MO.normalizeSetup(id, setup) };
+      const v = { mode: x.mode, setup: MO.normalizeSetup(id, setup) };
+      if (MO.RUNNING.has(id)) pending[id] = v; else { inUse[id] = v; delete pending[id]; }
     });
-    S.inst = MO.normalizeState(inst); S.saved = true;
-    MO.writeStore({ saved: true, instances: S.inst });
+    MO.writeStore({ saved: true, instances: MO.normalizeState(inUse), pending });
+    S.inUse = MO.normalizeState(inUse); S.pending = new Set(Object.keys(pending)); S.latest = Object.assign(MO.clone(S.inUse), pending);
     $('mo').hidden = true;
-    if (MO.postNav('column', { toast: 'saved' })) return;
+    if (MO.postNav(homeStep(), { toast: 'saved' })) return;
     if (!visible.includes('moduleOutputs')) visible = BASE_COLUMNS.map((c) => c.key).filter((k) => k === 'moduleOutputs' || visible.includes(k));
     renderAll();
     toast('Module Outputs saved');
   }
+  $('wmSave').addEventListener('click', commitSave);
+  $('wmCancel').addEventListener('click', closeWarning);
+  $('wmClose').addEventListener('click', closeWarning);
+  $('wm').addEventListener('mousedown', (e) => { if (e.target === $('wm')) closeWarning(); });
   $('moBtn').addEventListener('click', () => {
     if (noPermission) return;
     if (step !== 'setup' && MO.postNav('setup')) return;
@@ -1112,6 +1163,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
     }
     if (e.key !== 'Escape') return;
     if (!$('dl').hidden) closeDownload();
+    else if (!$('wm').hidden) closeWarning();
     else if (modalOpen() && !$('iselPanel').hidden) closeInstPanel();
     else if (modalOpen()) closeModal();
     else closeEditTable();
@@ -1140,6 +1192,12 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   } else if (after && step === 'more-modules') {
     openModal('B-CP1');
     if (rawState === 'setup-more-end') $('capPane').scrollTop = $('capPane').scrollHeight;
+  } else if (after && step === 'restart') {
+    // Save while Line 1 Instance is running: the Warning asks first.
+    openModal('A-CP3'); showFirstTicked();
+    if (M.inst) { Dr().dirty = true; openWarning(runningChanged()); }
+  } else if (after && step === 'before-restart' && params.get('win') === '1') {
+    openModal('A-CP3'); showFirstTicked();
   } else if (step === 'edit-table') {
     openEditTable();
     const row = $('etdList').querySelector('[data-key="moduleOutputs"]') || $('etdList').querySelector('[data-key^="k:"]') || $('etdList').querySelector('[data-key="configResult"]');
@@ -1147,6 +1205,7 @@ td.empty{padding:8px;text-align:center;font-size:16px;color:var(--label);backgro
   }
   // Separate columns step: start scrolled to the key columns at the right end.
   if (step === 'separate') $('tscroll').scrollLeft = $('tscroll').scrollWidth;
+  if (rawState === 'setup-cross') { const x = $('capPane').querySelector('[data-cross]'); if (x) $('capPane').scrollTop = x.offsetTop - $('capPane').offsetTop - 12; }
   if (params.get('toast') === 'saved') toast('Module Outputs saved');
   // ?open=<cycle>:<result|raw>:<image> (1-based) opens the image viewer on load, e.g. ?open=2:result:2
   const o = (params.get('open') || '').split(':'), oc = CYCLES[Number(o[0]) - 1];

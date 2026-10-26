@@ -149,7 +149,7 @@ a.hl{color:#0563C1;text-decoration:underline}
     <span class="zm"><span>−</span><span class="bar"><b></b></span><span>+</span><span id="zoomPct">80%</span></span></div>
 </div>
 
-<script src="shared.js?v=20261026a"></script>
+<script src="shared.js?v=20261026b"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -179,7 +179,7 @@ a.hl{color:#0563C1;text-decoration:underline}
   });
 
   function build() {
-    const line1 = MO.resolveState(true).instances.line1, setup = line1.setup;
+    const line1 = MO.resolveState('restarted').inUse.line1, setup = line1.setup;
     const sep = (display || line1.mode) === 'separate';
     COLS = BASE.slice();
     if (after && MO.isSetUp(setup)) {

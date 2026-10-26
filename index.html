@@ -70,7 +70,9 @@
     { id: 'setup', label: 'Open Module Outputs', file: 'reports.html', state: 'setup-empty' },
     { id: 'choose', label: 'Choose & rename', file: 'reports.html', state: 'choose' },
     { id: 'more-modules', label: 'Other module types', file: 'reports.html', state: 'more-modules' },
-    { id: 'column', label: 'Module Outputs column', file: 'reports.html', state: 'column' },
+    { id: 'restart', label: 'Save while running', file: 'reports.html', state: 'restart' },
+    { id: 'before-restart', label: 'Before restart', file: 'reports.html', state: 'before-restart' },
+    { id: 'column', label: 'Column after restart', file: 'reports.html', state: 'column' },
     { id: 'separate', label: 'Separate columns', file: 'reports.html', state: 'separate' },
     { id: 'edit-table', label: 'Edit Table', file: 'reports.html', state: 'edit-table' },
     { id: 'search', label: 'Search', file: 'reports.html', state: 'search' },
@@ -91,7 +93,7 @@
     const q = [];
     if (step.state) q.push('state=' + step.state);
     q.push('mode=' + mode);
-    q.push('v=20261026a');
+    q.push('v=20261026b');
     if (extra) Object.keys(extra).forEach((k) => q.push(k + '=' + encodeURIComponent(extra[k])));
     return step.file + '?' + q.join('&');
   }
